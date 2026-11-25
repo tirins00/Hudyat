@@ -196,6 +196,7 @@ export const SOS_STATUSES = Object.freeze({
  * @property {string} email
  * @property {string} displayName
  * @property {Role} role
+ * @property {boolean} active
  * @property {string} campusId
  * @property {string} [studentNumber]
  * @property {string} [employeeNumber]
