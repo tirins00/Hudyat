@@ -133,6 +133,7 @@ export interface User {
   displayName: string;
   role: Role;
   campusId: string;
+  active?: boolean;
   studentNumber?: string;
   employeeNumber?: string;
   mobilityNeeds?: boolean;

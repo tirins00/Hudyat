@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Timestamp,
   collection,
@@ -335,10 +336,14 @@ function createInitialDemoData(pastDeadline: boolean): DemoDataset {
   };
 }
 
-const SIDEBAR_ITEMS = [
+const SIDEBAR_ITEMS: ReadonlyArray<{
+  label: string;
+  to?: string;
+  active: boolean;
+}> = [
   { label: 'Drill Dashboard', active: false },
-  { label: 'Headcount Board', active: true },
-  { label: 'Expected List', active: false },
+  { label: 'Headcount Board', to: '/headcount', active: true },
+  { label: 'Expected List', to: '/expected-list', active: false },
   { label: 'Campus Setup', active: false },
   { label: 'Roster Import', active: false },
   { label: 'Reports', active: false },
@@ -693,21 +698,31 @@ export function HeadcountBoard() {
         </div>
 
         <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto">
-          {SIDEBAR_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              disabled={!item.active}
-              aria-current={item.active ? 'page' : undefined}
-              className={
-                item.active
-                  ? 'min-h-[48px] px-4 py-2.5 rounded-lg text-left font-bold text-slate-950 bg-slate-200 border border-slate-400 whitespace-nowrap'
-                  : 'min-h-[48px] px-4 py-2.5 rounded-lg text-left font-medium text-slate-700 bg-transparent opacity-60 cursor-not-allowed whitespace-nowrap'
-              }
-            >
-              {item.label}
-            </button>
-          ))}
+          {SIDEBAR_ITEMS.map((item) =>
+            item.to ? (
+              <Link
+                key={item.label}
+                to={item.to}
+                aria-current={item.active ? 'page' : undefined}
+                className={
+                  item.active
+                    ? 'min-h-[48px] px-4 py-2.5 rounded-lg flex items-center font-bold text-slate-950 bg-slate-200 border border-slate-400 whitespace-nowrap'
+                    : 'min-h-[48px] px-4 py-2.5 rounded-lg flex items-center font-semibold text-slate-900 hover:bg-slate-100 border border-transparent whitespace-nowrap'
+                }
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <button
+                key={item.label}
+                type="button"
+                disabled
+                className="min-h-[48px] px-4 py-2.5 rounded-lg text-left font-medium text-slate-700 bg-transparent opacity-60 cursor-not-allowed whitespace-nowrap"
+              >
+                {item.label}
+              </button>
+            ),
+          )}
         </nav>
       </aside>
 
