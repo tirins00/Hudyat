@@ -53,7 +53,7 @@
         // -------------------------------------------------------------------------
 
         match /users/{uid} {
-          allow read: if (isSignedIn() && request.auth.uid == uid) || isStaff();
+          allow read: if isActiveUser();
           allow create: if isAdmin()
             || (isCoordinator() && request.resource.data.role == 'student');
           allow update: if isAdmin()
@@ -131,8 +131,7 @@
           allow create, update, delete: if isCoordinatorOrAdmin();
 
           match /expectedEntries/{entryId} {
-            allow read: if isStaff()
-              || (isActiveUser() && resource.data.studentUid == request.auth.uid);
+            allow read: if isActiveUser();
             allow create, update, delete: if isCoordinatorOrAdmin();
           }
 
@@ -146,8 +145,7 @@
 
           // Check-in documents MUST use doc ID = studentUid.
           match /checkIns/{studentUid} {
-            allow read: if isStaff()
-              || (isActiveUser() && request.auth.uid == studentUid);
+            allow read: if isActiveUser();
             allow create, update: if isActiveUser()
               && request.resource.data.studentUid == studentUid
               && request.resource.data.checkedInBy == request.auth.uid

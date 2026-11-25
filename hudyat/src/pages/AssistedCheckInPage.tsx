@@ -137,6 +137,8 @@ export function AssistedCheckInPage() {
   const teacherUid =
     manualTeacherUid.trim() || authUser?.uid || DEMO_TEACHER_UID;
   const peerActorUid = authUser?.uid || DEMO_PEER_UID;
+  const canVerifyOrMarkPresent =
+    useDemoMode || !authUser || authUser.role !== 'student';
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [actionError, setActionError] = useState<string | null>(null);
@@ -529,30 +531,48 @@ export function AssistedCheckInPage() {
                         </td>
                         <td className="py-3.5 px-4">
                           {!checkIn ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleMarkPresent(student)}
-                              className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 cursor-pointer"
-                            >
-                              Mark present
-                            </button>
+                            canVerifyOrMarkPresent ? (
+                              <button
+                                type="button"
+                                onClick={() => void handleMarkPresent(student)}
+                                className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 cursor-pointer"
+                              >
+                                Mark present
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleSubmitPeerCheckIn(student)
+                                }
+                                className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 cursor-pointer"
+                              >
+                                Check in (Peer)
+                              </button>
+                            )
                           ) : isPendingPeer ? (
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => void handleConfirmPeer(student)}
-                                className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-emerald-800 text-white font-bold text-sm hover:bg-emerald-900 cursor-pointer"
-                              >
-                                Confirm
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void handleRejectPeer(student)}
-                                className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-red-700 text-white font-bold text-sm hover:bg-red-800 cursor-pointer"
-                              >
-                                Reject
-                              </button>
-                            </div>
+                            canVerifyOrMarkPresent ? (
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleConfirmPeer(student)}
+                                  className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-emerald-800 text-white font-bold text-sm hover:bg-emerald-900 cursor-pointer"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleRejectPeer(student)}
+                                  className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-red-700 text-white font-bold text-sm hover:bg-red-800 cursor-pointer"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-semibold text-amber-900">
+                                Awaiting teacher verification
+                              </span>
+                            )
                           ) : (
                             <span className="text-xs font-semibold text-slate-700">
                               Verified
