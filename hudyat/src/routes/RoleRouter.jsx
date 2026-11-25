@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAuth } from './authContext.js';
 import { getRoleHomePath } from '../services/AuthService.js';
 import { ROLES } from '../types/models.js';
 import LoginPage from '../pages/LoginPage.jsx';
+import ExpectedListPage from '../pages/ExpectedListPage.jsx';
 
 const ROLE_LABELS = Object.freeze({
   [ROLES.STUDENT]: 'Student',
@@ -56,7 +57,7 @@ function HomeRedirect() {
   return <Navigate to={getRoleHomePath(user.role)} replace />;
 }
 
-function RolePlaceholderHome({ title, description }) {
+function RolePlaceholderHome({ title, description, children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -109,6 +110,7 @@ function RolePlaceholderHome({ title, description }) {
         <section className="rounded-xl border-2 border-slate-300 bg-white p-6">
           <h2 className="text-lg font-bold text-slate-950">{title}</h2>
           <p className="mt-2 text-base text-slate-700">{description}</p>
+          {children && <div className="mt-5">{children}</div>}
         </section>
       </main>
     </div>
@@ -138,7 +140,14 @@ function CoordinatorHomePage() {
     <RolePlaceholderHome
       title="Drill Dashboard"
       description="Live drill launch controls, phase transitions, blocked exits, check-in progress, and SOS alerts will appear here."
-    />
+    >
+      <Link
+        to="/coordinator/expected-list"
+        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+      >
+        Open Expected List
+      </Link>
+    </RolePlaceholderHome>
   );
 }
 
@@ -168,6 +177,14 @@ function RoleRouter() {
         element={
           <RoleGuard allowedRole={ROLES.TEACHER}>
             <TeacherHomePage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/coordinator/expected-list"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <ExpectedListPage />
           </RoleGuard>
         }
       />
