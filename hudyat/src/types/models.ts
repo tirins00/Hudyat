@@ -194,6 +194,7 @@ export interface Drill {
   createdBy: string;
   startedAt: Timestamp;
   evacuateAt?: Timestamp | null;
+  deadlineAt?: Timestamp | null;
   endedAt?: Timestamp | null;
   dchDurationSec: number;
 }
@@ -204,9 +205,12 @@ export interface ExpectedEntry {
   drillId: string;
   studentUid: string;
   displayName: string;
+  group?: string;
   sectionId: string;
+  sectionCode?: string;
   teacherUid: string;
   roomNodeId: string;
+  expectedRoomId?: string | null;
   buildingId: string;
   floor: number;
   expectedAssemblyNodeId?: string;
@@ -220,6 +224,7 @@ export interface Response {
   phase: DrillPhase;
   status: ResponseStatus;
   currentNodeId?: string;
+  zoneNodeId?: string;
   routeNodeIds?: string[];
   updatedAt: Timestamp;
 }
@@ -236,6 +241,7 @@ export interface CheckIn {
   assemblyNodeId: string;
   sectionId?: string;
   checkedInBy: string;
+  verifiedBy?: string | null;
   checkedInAt: Timestamp;
   notes?: string;
 }
@@ -258,6 +264,9 @@ export interface Alert {
   /** Optional flash rate in Hz; must be strictly < 3. */
   flashHz?: number;
   targetBuildingIds?: string[];
+  studentUid?: string;
+  teacherUid?: string;
+  at?: Timestamp;
   createdBy: string;
   createdAt: Timestamp;
 }
