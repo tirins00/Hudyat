@@ -1,186 +1,193 @@
-rules_version = '2';
+    rules_version = '2';
 
-service cloud.firestore {
-  match /databases/{database}/documents {
+    service cloud.firestore {
+      match /databases/{database}/documents {
 
-    // -------------------------------------------------------------------------
-    // Helper Functions
-    // -------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
+        // Helper Functions
+        // -------------------------------------------------------------------------
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
+        function isSignedIn() {
+          return request.auth != null;
+        }
 
-    function userDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
+        function userDoc() {
+          return get(/databases/$(database)/documents/users/$(request.auth.uid));
+        }
 
-    function isActiveUser() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc().data.active == true;
-    }
+        function isActiveUser() {
+          return isSignedIn()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && userDoc().data.active == true;
+        }
 
-    function userRole() {
-      return userDoc().data.role;
-    }
+        function userRole() {
+          return userDoc().data.role;
+        }
 
-    function isAdmin() {
-      return isActiveUser() && userRole() == 'admin';
-    }
+        function isAdmin() {
+          return isActiveUser() && userRole() == 'admin';
+        }
 
-    function isCoordinator() {
-      return isActiveUser() && userRole() == 'coordinator';
-    }
+        function isCoordinator() {
+          return isActiveUser() && userRole() == 'coordinator';
+        }
 
-    function isTeacher() {
-      return isActiveUser() && userRole() == 'teacher';
-    }
+        function isTeacher() {
+          return isActiveUser() && userRole() == 'teacher';
+        }
 
-    function isStaff() {
-      return isActiveUser() && userRole() in ['teacher', 'coordinator', 'admin'];
-    }
+        function isStaff() {
+          return isActiveUser() && userRole() in ['teacher', 'coordinator', 'admin'];
+        }
 
-    function isCoordinatorOrAdmin() {
-      return isActiveUser() && userRole() in ['coordinator', 'admin'];
-    }
+        function isCoordinatorOrAdmin() {
+          return isActiveUser() && userRole() in ['coordinator', 'admin'];
+        }
 
-    // -------------------------------------------------------------------------
-    // Users: users/{uid}
-    // Users read own profile (required on login to verify `active == true`),
-    // staff read all user profiles, admins manage writes.
-    // -------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
+        // Users: users/{uid}
+        // Users read own profile (required on login to verify `active == true`),
+        // staff read all user profiles, admins manage all writes, and coordinators
+        // may create/update student profiles during roster CSV import.
+        // -------------------------------------------------------------------------
 
-    match /users/{uid} {
-      allow read: if (isSignedIn() && request.auth.uid == uid) || isStaff();
-      allow create, update, delete: if isAdmin();
-    }
+        match /users/{uid} {
+          allow read: if (isSignedIn() && request.auth.uid == uid) || isStaff();
+          allow create: if isAdmin()
+            || (isCoordinator() && request.resource.data.role == 'student');
+          allow update: if isAdmin()
+            || (isCoordinator()
+                && resource.data.role == 'student'
+                && request.resource.data.role == 'student');
+          allow delete: if isAdmin();
+        }
 
-    // -------------------------------------------------------------------------
-    // Campuses & Indoor Map Data: campuses/{campusId}
-    // Active campus users can read; admins manage writes.
-    // -------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
+        // Campuses & Indoor Map Data: campuses/{campusId}
+        // Active campus users can read; admins manage writes.
+        // -------------------------------------------------------------------------
 
-    match /campuses/{campusId} {
-      allow read: if isActiveUser();
-      allow create, update, delete: if isAdmin();
+        match /campuses/{campusId} {
+          allow read: if isActiveUser();
+          allow create, update, delete: if isAdmin();
 
-      match /buildings/{buildingId} {
-        allow read: if isActiveUser();
-        allow create, update, delete: if isAdmin();
+          match /buildings/{buildingId} {
+            allow read: if isActiveUser();
+            allow create, update, delete: if isAdmin();
+          }
+
+          match /mapNodes/{nodeId} {
+            allow read: if isActiveUser();
+            allow create, update, delete: if isAdmin();
+          }
+
+          match /mapEdges/{edgeId} {
+            allow read: if isActiveUser();
+            allow create, update, delete: if isAdmin();
+          }
+
+          match /floorPlans/{floorPlanId} {
+            allow read: if isActiveUser();
+            allow create, update, delete: if isAdmin();
+          }
+
+          match /policy/{policyId} {
+            allow read: if isActiveUser();
+            // Enforce safety invariant: maxFlashHz must remain strictly under 3 Hz.
+            allow create, update: if isAdmin()
+              && (!('maxFlashHz' in request.resource.data)
+                  || request.resource.data.maxFlashHz < 3);
+            allow delete: if isAdmin();
+          }
+        }
+
+        // -------------------------------------------------------------------------
+        // Academic Collections: sections, enrollments, scheduleSlots
+        // Active users can read; admins and coordinators manage roster/schedule writes.
+        // -------------------------------------------------------------------------
+
+        match /sections/{sectionId} {
+          allow read: if isActiveUser();
+          allow create, update, delete: if isCoordinatorOrAdmin();
+        }
+
+        match /enrollments/{enrollmentId} {
+          allow read: if isActiveUser();
+          allow create, update, delete: if isCoordinatorOrAdmin();
+        }
+
+        match /scheduleSlots/{slotId} {
+          allow read: if isActiveUser();
+          allow create, update, delete: if isCoordinatorOrAdmin();
+        }
+
+        // -------------------------------------------------------------------------
+        // Drills & Drill Subcollections: drills/{drillId}
+        // -------------------------------------------------------------------------
+
+        match /drills/{drillId} {
+          allow read: if isActiveUser();
+          allow create, update, delete: if isCoordinatorOrAdmin();
+
+          match /expectedEntries/{entryId} {
+            allow read: if isStaff()
+              || (isActiveUser() && resource.data.studentUid == request.auth.uid);
+            allow create, update, delete: if isCoordinatorOrAdmin();
+          }
+
+          match /responses/{responseId} {
+            allow read: if isStaff()
+              || (isActiveUser() && resource.data.uid == request.auth.uid);
+            allow create, update: if isCoordinatorOrAdmin()
+              || (isActiveUser() && request.resource.data.uid == request.auth.uid);
+            allow delete: if isAdmin();
+          }
+
+          // Check-in documents MUST use doc ID = studentUid.
+          match /checkIns/{studentUid} {
+            allow read: if isStaff()
+              || (isActiveUser() && request.auth.uid == studentUid);
+            allow create, update: if isActiveUser()
+              && request.resource.data.studentUid == studentUid
+              && request.resource.data.checkedInBy == request.auth.uid
+              && (
+                isStaff()
+                || request.auth.uid == studentUid
+                || request.resource.data.method == 'peer'
+              );
+            allow delete: if isCoordinatorOrAdmin();
+          }
+
+          // Alerts must include visual or haptic cues (no sound-only alerts)
+          // and keep any flashing strictly under 3 flashes/sec.
+          match /alerts/{alertId} {
+            allow read: if isActiveUser();
+            allow create, update: if isCoordinatorOrAdmin()
+              && (request.resource.data.visualCue == true
+                  || request.resource.data.hapticCue == true)
+              && (!('flashHz' in request.resource.data)
+                  || request.resource.data.flashHz < 3);
+            allow delete: if isCoordinatorOrAdmin();
+          }
+
+          match /sos/{sosId} {
+            allow read: if isStaff()
+              || (isActiveUser() && resource.data.uid == request.auth.uid);
+            allow create: if isActiveUser()
+              && request.resource.data.uid == request.auth.uid;
+            allow update: if isStaff()
+              || (isActiveUser() && resource.data.uid == request.auth.uid);
+            allow delete: if isAdmin();
+          }
+        }
+
+        // -------------------------------------------------------------------------
+        // Default Deny
+        // -------------------------------------------------------------------------
+
+        match /{document=**} {
+          allow read, write: if false;
+        }
       }
-
-      match /mapNodes/{nodeId} {
-        allow read: if isActiveUser();
-        allow create, update, delete: if isAdmin();
-      }
-
-      match /mapEdges/{edgeId} {
-        allow read: if isActiveUser();
-        allow create, update, delete: if isAdmin();
-      }
-
-      match /floorPlans/{floorPlanId} {
-        allow read: if isActiveUser();
-        allow create, update, delete: if isAdmin();
-      }
-
-      match /policy/{policyId} {
-        allow read: if isActiveUser();
-        // Enforce safety invariant: maxFlashHz must remain strictly under 3 Hz.
-        allow create, update: if isAdmin()
-          && (!('maxFlashHz' in request.resource.data)
-              || request.resource.data.maxFlashHz < 3);
-        allow delete: if isAdmin();
-      }
     }
-
-    // -------------------------------------------------------------------------
-    // Academic Collections: sections, enrollments, scheduleSlots
-    // Active users can read; admins manage writes.
-    // -------------------------------------------------------------------------
-
-    match /sections/{sectionId} {
-      allow read: if isActiveUser();
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /enrollments/{enrollmentId} {
-      allow read: if isActiveUser();
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /scheduleSlots/{slotId} {
-      allow read: if isActiveUser();
-      allow create, update, delete: if isAdmin();
-    }
-
-    // -------------------------------------------------------------------------
-    // Drills & Drill Subcollections: drills/{drillId}
-    // -------------------------------------------------------------------------
-
-    match /drills/{drillId} {
-      allow read: if isActiveUser();
-      allow create, update, delete: if isCoordinatorOrAdmin();
-
-      match /expectedEntries/{entryId} {
-        allow read: if isStaff()
-          || (isActiveUser() && resource.data.studentUid == request.auth.uid);
-        allow create, update, delete: if isCoordinatorOrAdmin();
-      }
-
-      match /responses/{responseId} {
-        allow read: if isStaff()
-          || (isActiveUser() && resource.data.uid == request.auth.uid);
-        allow create, update: if isCoordinatorOrAdmin()
-          || (isActiveUser() && request.resource.data.uid == request.auth.uid);
-        allow delete: if isAdmin();
-      }
-
-      // Check-in documents MUST use doc ID = studentUid.
-      match /checkIns/{studentUid} {
-        allow read: if isStaff()
-          || (isActiveUser() && request.auth.uid == studentUid);
-        allow create, update: if isActiveUser()
-          && request.resource.data.studentUid == studentUid
-          && request.resource.data.checkedInBy == request.auth.uid
-          && (
-            isStaff()
-            || request.auth.uid == studentUid
-            || request.resource.data.method == 'peer'
-          );
-        allow delete: if isCoordinatorOrAdmin();
-      }
-
-      // Alerts must include visual or haptic cues (no sound-only alerts)
-      // and keep any flashing strictly under 3 flashes/sec.
-      match /alerts/{alertId} {
-        allow read: if isActiveUser();
-        allow create, update: if isCoordinatorOrAdmin()
-          && (request.resource.data.visualCue == true
-              || request.resource.data.hapticCue == true)
-          && (!('flashHz' in request.resource.data)
-              || request.resource.data.flashHz < 3);
-        allow delete: if isCoordinatorOrAdmin();
-      }
-
-      match /sos/{sosId} {
-        allow read: if isStaff()
-          || (isActiveUser() && resource.data.uid == request.auth.uid);
-        allow create: if isActiveUser()
-          && request.resource.data.uid == request.auth.uid;
-        allow update: if isStaff()
-          || (isActiveUser() && resource.data.uid == request.auth.uid);
-        allow delete: if isAdmin();
-      }
-    }
-
-    // -------------------------------------------------------------------------
-    // Default Deny
-    // -------------------------------------------------------------------------
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
