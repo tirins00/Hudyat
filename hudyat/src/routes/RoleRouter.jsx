@@ -5,6 +5,7 @@ import { getRoleHomePath } from '../services/AuthService.js';
 import { ROLES } from '../types/models.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
+import RosterImportPage from '../pages/RosterImportPage.jsx';
 
 const ROLE_LABELS = Object.freeze({
   [ROLES.STUDENT]: 'Student',
@@ -141,12 +142,20 @@ function CoordinatorHomePage() {
       title="Drill Dashboard"
       description="Live drill launch controls, phase transitions, blocked exits, check-in progress, and SOS alerts will appear here."
     >
-      <Link
-        to="/coordinator/expected-list"
-        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-      >
-        Open Expected List
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/coordinator/expected-list"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Expected List
+        </Link>
+        <Link
+          to="/coordinator/roster-import"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Roster Import
+        </Link>
+      </div>
     </RolePlaceholderHome>
   );
 }
@@ -156,7 +165,14 @@ function AdminHomePage() {
     <RolePlaceholderHome
       title="Campus Setup"
       description="Campus buildings, floor plans, indoor navigation graph, policies, schedules, and user administration will appear here."
-    />
+    >
+      <Link
+        to="/admin/roster-import"
+        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+      >
+        Open Roster Import
+      </Link>
+    </RolePlaceholderHome>
   );
 }
 
@@ -189,10 +205,26 @@ function RoleRouter() {
         }
       />
       <Route
+        path="/coordinator/roster-import"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <RosterImportPage />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/coordinator/*"
         element={
           <RoleGuard allowedRole={ROLES.COORDINATOR}>
             <CoordinatorHomePage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/roster-import"
+        element={
+          <RoleGuard allowedRole={ROLES.ADMIN}>
+            <RosterImportPage />
           </RoleGuard>
         }
       />
