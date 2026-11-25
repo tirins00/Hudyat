@@ -1,7 +1,7 @@
 # Hudyat — Project Rules
 
 ## Tech Stack
-- **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, React Router
+- **Frontend:** React 19, Vite, JavaScript (.js/.jsx), Tailwind CSS, React Router
 - **Backend / Cloud:** Firebase (Authentication, Cloud Firestore with offline persistence, Hosting)
 - **Mobile:** Capacitor (Android)
 - **Testing:** Vitest
