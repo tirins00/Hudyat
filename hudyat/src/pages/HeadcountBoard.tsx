@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Timestamp,
   collection,
@@ -7,6 +6,7 @@ import {
   onSnapshot,
   query,
 } from 'firebase/firestore';
+import { SidebarNav } from '../components/SidebarNav';
 import {
   getHeadcountFirestore,
   isFirebaseConfigured,
@@ -335,19 +335,6 @@ function createInitialDemoData(pastDeadline: boolean): DemoDataset {
     alerts: [],
   };
 }
-
-const SIDEBAR_ITEMS: ReadonlyArray<{
-  label: string;
-  to?: string;
-  active: boolean;
-}> = [
-  { label: 'Drill Dashboard', active: false },
-  { label: 'Headcount Board', to: '/headcount', active: true },
-  { label: 'Expected List', to: '/expected-list', active: false },
-  { label: 'Campus Setup', active: false },
-  { label: 'Roster Import', active: false },
-  { label: 'Reports', active: false },
-];
 
 export function HeadcountBoard() {
   const firebaseReady = isFirebaseConfigured();
@@ -683,48 +670,7 @@ export function HeadcountBoard() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col md:flex-row font-sans">
-      {/* Left Navigation Sidebar (matches SDD Figure 44 wireframe) */}
-      <aside
-        aria-label="Primary navigation"
-        className="w-full md:w-64 shrink-0 bg-white border-b md:border-b-0 md:border-r border-slate-300 p-4 flex flex-col gap-2"
-      >
-        <div className="px-3 py-2 border-b border-slate-200 mb-2">
-          <p className="text-2xl font-extrabold tracking-tight text-slate-950">
-            HUDYAT
-          </p>
-          <p className="text-xs font-medium text-slate-700">
-            Campus Earthquake Drill System
-          </p>
-        </div>
-
-        <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto">
-          {SIDEBAR_ITEMS.map((item) =>
-            item.to ? (
-              <Link
-                key={item.label}
-                to={item.to}
-                aria-current={item.active ? 'page' : undefined}
-                className={
-                  item.active
-                    ? 'min-h-[48px] px-4 py-2.5 rounded-lg flex items-center font-bold text-slate-950 bg-slate-200 border border-slate-400 whitespace-nowrap'
-                    : 'min-h-[48px] px-4 py-2.5 rounded-lg flex items-center font-semibold text-slate-900 hover:bg-slate-100 border border-transparent whitespace-nowrap'
-                }
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <button
-                key={item.label}
-                type="button"
-                disabled
-                className="min-h-[48px] px-4 py-2.5 rounded-lg text-left font-medium text-slate-700 bg-transparent opacity-60 cursor-not-allowed whitespace-nowrap"
-              >
-                {item.label}
-              </button>
-            ),
-          )}
-        </nav>
-      </aside>
+      <SidebarNav activePath="/headcount" />
 
       {/* Main Content */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6">

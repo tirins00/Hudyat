@@ -242,6 +242,7 @@ export interface CheckIn {
   assemblyNodeId: string;
   sectionId?: string;
   checkedInBy: string;
+  byUid?: string;
   verifiedBy?: string | null;
   checkedInAt: Timestamp;
   notes?: string;
