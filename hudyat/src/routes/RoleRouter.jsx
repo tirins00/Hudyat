@@ -214,7 +214,14 @@ function AdminHomePage() {
     <RolePlaceholderHome
       title="Campus Setup"
       description="Campus buildings, floor plans, indoor navigation graph, policies, schedules, and user administration will appear here."
-    />
+    >
+      <Link
+        to="/admin/roster-import"
+        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+      >
+        Open Roster Import
+      </Link>
+    </RolePlaceholderHome>
   );
 }
 
@@ -301,6 +308,14 @@ function RoleRouter() {
         }
       />
       <Route
+        path="/coordinator/roster-import"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <RosterImportPage />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/coordinator/*"
         element={
           <RoleGuard allowedRole={ROLES.COORDINATOR}>
@@ -310,6 +325,14 @@ function RoleRouter() {
       />
 
       {/* Admin routes */}
+      <Route
+        path="/admin/roster-import"
+        element={
+          <RoleGuard allowedRole={ROLES.ADMIN}>
+            <RosterImportPage />
+          </RoleGuard>
+        }
+      />
       <Route
         path="/admin/*"
         element={
