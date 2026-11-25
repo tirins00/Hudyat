@@ -282,9 +282,11 @@ export interface Sos {
   drillId: string;
   uid: string;
   nodeId: string;
+  zoneLabel?: string;
   buildingId?: string;
   floor?: number;
   message?: string;
+  note?: string;
   status: SosStatus;
   createdAt: Timestamp;
   acknowledgedBy?: string;

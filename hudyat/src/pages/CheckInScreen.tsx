@@ -8,6 +8,7 @@ import {
   query,
 } from 'firebase/firestore';
 import { SidebarNav } from '../components/SidebarNav';
+import { SosSheet } from '../components/SosSheet';
 import {
   getHeadcountFirestore,
   isFirebaseConfigured,
@@ -106,6 +107,7 @@ export function CheckInScreen() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null);
   const [manualQrInput, setManualQrInput] = useState<string>('');
+  const [isSosOpen, setIsSosOpen] = useState<boolean>(false);
 
   // Subscribe to live Firestore mapNodes & student checkIn when in Live mode
   useEffect(() => {
@@ -290,20 +292,51 @@ export function CheckInScreen() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setScanError(null);
-              setDuplicateNotice(null);
-              setUseDemoMode((v) => !v);
-            }}
-            className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer self-start sm:self-auto"
-          >
-            {useDemoMode
-              ? 'Mode: Demo (Switch to Live)'
-              : 'Mode: Live Firestore (Switch to Demo)'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsSosOpen(true)}
+              className="min-h-[48px] min-w-[48px] px-5 py-2 rounded-lg border-2 border-red-950 bg-red-700 text-white font-extrabold text-sm tracking-wide hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-400 cursor-pointer"
+            >
+              SOS
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setScanError(null);
+                setDuplicateNotice(null);
+                setUseDemoMode((v) => !v);
+              }}
+              className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer"
+            >
+              {useDemoMode
+                ? 'Mode: Demo (Switch to Live)'
+                : 'Mode: Live Firestore (Switch to Demo)'}
+            </button>
+          </div>
         </header>
+
+        {isSosOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Send SOS"
+            className="fixed inset-0 z-50 bg-slate-950/70 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <div className="w-full max-w-lg my-auto">
+              <SosSheet
+                drillId={activeDrillId}
+                studentUid={studentUid}
+                studentName={
+                  studentUid === DEMO_STUDENT_UID ? 'Ana Cruz' : undefined
+                }
+                useDemoMode={useDemoMode}
+                onClose={() => setIsSosOpen(false)}
+              />
+            </div>
+          </div>
+        )}
 
         {!useDemoMode && (
           <section

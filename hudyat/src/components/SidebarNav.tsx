@@ -1,7 +1,12 @@
 import { Link } from 'react-router-dom';
 
 export interface SidebarNavProps {
-  activePath: '/headcount' | '/expected-list' | '/check-in' | '/assisted-check-in';
+  activePath:
+    | '/headcount'
+    | '/expected-list'
+    | '/check-in'
+    | '/assisted-check-in'
+    | '/sos';
 }
 
 const NAV_ITEMS: ReadonlyArray<{
@@ -13,6 +18,7 @@ const NAV_ITEMS: ReadonlyArray<{
   { label: 'Expected List', to: '/expected-list' },
   { label: 'QR Check-In', to: '/check-in' },
   { label: 'Assisted Check-In', to: '/assisted-check-in' },
+  { label: 'SOS', to: '/sos' },
   { label: 'Campus Setup' },
   { label: 'Roster Import' },
   { label: 'Reports' },

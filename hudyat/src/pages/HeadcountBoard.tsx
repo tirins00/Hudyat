@@ -18,6 +18,14 @@ import {
   type MissingRow,
 } from '../services/HeadcountService';
 import { MissingMonitor } from '../services/MissingMonitor';
+import {
+  SOS_PRESETS,
+  acknowledgeSos,
+  demoSosStore,
+  resolveSos,
+  sendSos,
+  subscribeToSosAlerts,
+} from '../services/SosService';
 import type {
   Alert,
   CheckIn,
@@ -26,6 +34,7 @@ import type {
   MapNode,
   Response,
   Section,
+  Sos,
   User,
 } from '../types/models';
 
@@ -364,6 +373,9 @@ export function HeadcountBoard() {
     createInitialDemoData(true),
   );
   const [nowTick, setNowTick] = useState<Date>(() => new Date());
+  const [sosAlerts, setSosAlerts] = useState<Sos[]>([]);
+  const [sosActionError, setSosActionError] = useState<string | null>(null);
+  const demoSosCounterRef = useRef<number>(0);
 
   const monitorRef = useRef<MissingMonitor | null>(null);
 
@@ -605,6 +617,24 @@ export function HeadcountBoard() {
   );
 
   const activeDrill = useDemoMode ? demoData.drill : liveDrill;
+  const activeDrillId = useDemoMode ? demoData.drill.id : drillIdInput.trim();
+
+  // Subscribe to incoming SOS alerts (drills/{drillId}/sos or Demo Mode store).
+  useEffect(() => {
+    if (!activeDrillId) return;
+    const unsub = subscribeToSosAlerts(
+      activeDrillId,
+      (alerts) => {
+        setSosAlerts(alerts);
+      },
+      {
+        useDemoMode,
+        onError: (err) => setSosActionError(err.message),
+      },
+    );
+    return () => unsub();
+  }, [activeDrillId, useDemoMode]);
+
   const deadlineMs = toMillis(activeDrill?.deadlineAt);
   const isDeadlinePassed =
     deadlineMs !== null && nowTick.getTime() >= deadlineMs;
@@ -661,8 +691,87 @@ export function HeadcountBoard() {
   const handleResetDemo = () => {
     setPastDeadline(true);
     setDemoData(createInitialDemoData(true));
+    demoSosStore.clear(demoData.drill.id);
+    setSosActionError(null);
     monitorRef.current?.reset();
   };
+
+  const handleSimulateSos = async () => {
+    setSosActionError(null);
+    const idx = demoSosCounterRef.current;
+    demoSosCounterRef.current += 1;
+    const sampleScenarios = [
+      {
+        uid: 'stu-ben-lim',
+        nodeId: 'stair-a',
+        zoneLabel: 'Stairway A',
+        message: SOS_PRESETS[1].label,
+        note: 'Smoke near 2nd floor landing',
+      },
+      {
+        uid: 'stu-eva-go',
+        nodeId: 'canteen',
+        zoneLabel: 'Canteen',
+        message: SOS_PRESETS[0].label,
+        note: 'Twisted ankle during evacuation',
+      },
+      {
+        uid: 'stu-di-uy',
+        nodeId: 'eng-402',
+        zoneLabel: 'ENG 402',
+        message: SOS_PRESETS[2].label,
+      },
+    ];
+    const sample = sampleScenarios[idx % sampleScenarios.length];
+    try {
+      await sendSos(
+        {
+          drillId: demoData.drill.id,
+          uid: sample.uid,
+          nodeId: sample.nodeId,
+          zoneLabel: sample.zoneLabel,
+          message: sample.message,
+          note: sample.note,
+        },
+        { useDemoMode: true },
+      );
+    } catch (err: unknown) {
+      setSosActionError(
+        err instanceof Error ? err.message : 'Failed to simulate SOS.',
+      );
+    }
+  };
+
+  const handleAcknowledgeSos = async (sosId: string) => {
+    setSosActionError(null);
+    try {
+      await acknowledgeSos(activeDrillId, sosId, 'coord-1', { useDemoMode });
+    } catch (err: unknown) {
+      setSosActionError(
+        err instanceof Error ? err.message : 'Failed to acknowledge SOS.',
+      );
+    }
+  };
+
+  const handleResolveSos = async (sosId: string) => {
+    setSosActionError(null);
+    try {
+      await resolveSos(activeDrillId, sosId, 'coord-1', { useDemoMode });
+    } catch (err: unknown) {
+      setSosActionError(
+        err instanceof Error ? err.message : 'Failed to resolve SOS.',
+      );
+    }
+  };
+
+  const activeUsersList = useDemoMode ? demoData.users : liveUsers;
+  const activeNodesList = useDemoMode ? demoData.mapNodes : liveNodes;
+  const activeResponsesList = useDemoMode ? demoData.responses : liveResponses;
+  const incomingSosAlerts = useMemo(
+    () => sosAlerts.filter((s) => s.status !== 'resolved'),
+    [sosAlerts],
+  );
+  const resolvedSosCount = sosAlerts.length - incomingSosAlerts.length;
 
   const hasPendingPeerInDemo = demoData.checkIns.some(
     (c) => c.method === 'peer' && !c.verifiedBy,
@@ -758,6 +867,13 @@ export function HeadcountBoard() {
               </button>
               <button
                 type="button"
+                onClick={() => void handleSimulateSos()}
+                className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-red-700 border-2 border-red-950 text-white font-bold text-sm hover:bg-red-800 cursor-pointer"
+              >
+                Simulate SOS
+              </button>
+              <button
+                type="button"
                 onClick={handleResetDemo}
                 className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer"
               >
@@ -775,6 +891,114 @@ export function HeadcountBoard() {
                 'Firebase .env keys are not configured. Switch to Demo Mode to preview.'}
             </div>
           )
+        )}
+
+        {/* Active Incoming SOS Alert Cards (Module 5.4 Coordinator Panel) */}
+        {(incomingSosAlerts.length > 0 || resolvedSosCount > 0 || sosActionError) && (
+          <section aria-label="Incoming SOS alerts" className="space-y-3">
+            {sosActionError && (
+              <div
+                role="alert"
+                className="bg-red-50 border-2 border-red-800 text-red-950 rounded-xl px-4 py-3 text-sm font-bold"
+              >
+                {sosActionError}
+              </div>
+            )}
+
+            {incomingSosAlerts.map((sos) => {
+              const student = activeUsersList.find((u) => u.uid === sos.uid);
+              const studentName = student?.displayName ?? sos.uid;
+              const responseZoneId = activeResponsesList.find(
+                (r) => r.uid === sos.uid,
+              )?.currentNodeId;
+              const zoneId = sos.nodeId || responseZoneId || '';
+              const zoneNode = activeNodesList.find((n) => n.id === zoneId);
+              const zoneLabel =
+                zoneNode?.label ?? sos.zoneLabel ?? (zoneId || 'Unknown');
+              const timeSent = sos.createdAt.toDate().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              });
+              const isAcknowledged = sos.status === 'acknowledged';
+
+              return (
+                <article
+                  key={sos.id}
+                  role="alert"
+                  className="bg-red-50 border-2 border-red-800 rounded-xl overflow-hidden shadow-sm"
+                >
+                  <div className="bg-red-800 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-white text-red-900">
+                        SOS
+                      </span>
+                      <h2 className="text-base font-extrabold">
+                        {studentName}
+                      </h2>
+                    </div>
+                    <span
+                      className={
+                        isAcknowledged
+                          ? 'px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 text-xs font-extrabold uppercase'
+                          : 'px-2.5 py-0.5 rounded-full bg-white text-red-950 text-xs font-extrabold uppercase'
+                      }
+                    >
+                      {isAcknowledged ? 'Acknowledged' : 'Active'}
+                    </span>
+                  </div>
+
+                  <div className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1 text-sm text-slate-950">
+                      <p className="text-base font-extrabold text-red-950">
+                        {sos.message || 'Emergency assistance needed'}
+                      </p>
+                      {sos.note && (
+                        <p className="font-semibold text-slate-900">
+                          Note: {sos.note}
+                        </p>
+                      )}
+                      <p className="font-semibold text-slate-800">
+                        Last known zone:{' '}
+                        <span className="font-extrabold text-slate-950">
+                          {zoneLabel}
+                        </span>{' '}
+                        • Sent at{' '}
+                        <span className="font-extrabold text-slate-950">
+                          {timeSent}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      {!isAcknowledged && (
+                        <button
+                          type="button"
+                          onClick={() => void handleAcknowledgeSos(sos.id)}
+                          className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-amber-700 text-white font-bold text-sm hover:bg-amber-800 cursor-pointer"
+                        >
+                          Acknowledge
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void handleResolveSos(sos.id)}
+                        className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 cursor-pointer"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+
+            {incomingSosAlerts.length === 0 && resolvedSosCount > 0 && (
+              <p className="text-xs font-bold text-emerald-950 bg-emerald-50 border border-emerald-700 rounded-lg px-3 py-2">
+                All SOS alerts resolved ({resolvedSosCount} resolved).
+              </p>
+            )}
+          </section>
         )}
 
         {/* Top 4 Summary Cards (SDD Figure 44) */}
