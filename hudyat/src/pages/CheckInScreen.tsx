@@ -9,10 +9,8 @@ import {
 } from 'firebase/firestore';
 import { SidebarNav } from '../components/SidebarNav';
 import { SosSheet } from '../components/SosSheet';
-import {
-  getHeadcountFirestore,
-  isFirebaseConfigured,
-} from '../firebase/headcountClient';
+import { getHeadcountFirestore } from '../firebase/headcountClient';
+import { useHudyatSession } from '../routes/useHudyatSession';
 import {
   CheckInService,
   createFirestoreCheckInStore,
@@ -71,18 +69,30 @@ function formatArrivalTime(ts: Timestamp): string {
 }
 
 export function CheckInScreen() {
-  const firebaseReady = isFirebaseConfigured();
-  const [useDemoMode, setUseDemoMode] = useState<boolean>(!firebaseReady);
+  const { authUser, activeDrillId: campusActiveDrillId, firebaseReady } =
+    useHudyatSession();
+  const [demoOverride, setDemoOverride] = useState<boolean | null>(null);
+  const useDemoMode = demoOverride ?? (!firebaseReady || !authUser);
 
-  // Live config parameters (can be passed via query params in URL)
-  const [drillId, setDrillId] = useState<string>(() => {
+  // Live config parameters (prefilled from authenticated user + active drill, overridable via URL/inputs)
+  const [manualDrillId, setManualDrillId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).get('drillId') ?? 'active-drill';
+      return new URLSearchParams(window.location.search).get('drillId') ?? '';
     }
-    return 'active-drill';
+    return '';
   });
-  const [campusId, setCampusId] = useState<string>(DEMO_CAMPUS_ID);
-  const [studentUid, setStudentUid] = useState<string>(DEMO_STUDENT_UID);
+  const [manualCampusId, setManualCampusId] = useState<string>('');
+  const [manualStudentUid, setManualStudentUid] = useState<string>('');
+
+  const drillId = manualDrillId.trim() || campusActiveDrillId || 'active-drill';
+  const campusId =
+    manualCampusId.trim() || authUser?.campusId || DEMO_CAMPUS_ID;
+  const studentUid =
+    manualStudentUid.trim() || authUser?.uid || DEMO_STUDENT_UID;
+  const studentDisplayName =
+    authUser?.displayName ||
+    authUser?.email ||
+    (studentUid === DEMO_STUDENT_UID ? 'Ana Cruz' : undefined);
 
   // Live Firestore data
   const [liveNodes, setLiveNodes] = useState<MapNode[]>([]);
@@ -306,7 +316,7 @@ export function CheckInScreen() {
               onClick={() => {
                 setScanError(null);
                 setDuplicateNotice(null);
-                setUseDemoMode((v) => !v);
+                setDemoOverride(!useDemoMode);
               }}
               className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer"
             >
@@ -328,9 +338,7 @@ export function CheckInScreen() {
               <SosSheet
                 drillId={activeDrillId}
                 studentUid={studentUid}
-                studentName={
-                  studentUid === DEMO_STUDENT_UID ? 'Ana Cruz' : undefined
-                }
+                studentName={studentDisplayName}
                 useDemoMode={useDemoMode}
                 onClose={() => setIsSosOpen(false)}
               />
@@ -347,8 +355,8 @@ export function CheckInScreen() {
               <span>Campus ID</span>
               <input
                 type="text"
-                value={campusId}
-                onChange={(e) => setCampusId(e.target.value)}
+                value={manualCampusId || authUser?.campusId || DEMO_CAMPUS_ID}
+                onChange={(e) => setManualCampusId(e.target.value)}
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>
@@ -356,8 +364,9 @@ export function CheckInScreen() {
               <span>Drill ID</span>
               <input
                 type="text"
-                value={drillId}
-                onChange={(e) => setDrillId(e.target.value)}
+                value={manualDrillId || campusActiveDrillId || ''}
+                onChange={(e) => setManualDrillId(e.target.value)}
+                placeholder="active-drill"
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>
@@ -365,8 +374,8 @@ export function CheckInScreen() {
               <span>Student UID</span>
               <input
                 type="text"
-                value={studentUid}
-                onChange={(e) => setStudentUid(e.target.value)}
+                value={manualStudentUid || authUser?.uid || DEMO_STUDENT_UID}
+                onChange={(e) => setManualStudentUid(e.target.value)}
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>

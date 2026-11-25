@@ -7,10 +7,8 @@ import {
   query,
 } from 'firebase/firestore';
 import { SidebarNav } from '../components/SidebarNav';
-import {
-  getHeadcountFirestore,
-  isFirebaseConfigured,
-} from '../firebase/headcountClient';
+import { getHeadcountFirestore } from '../firebase/headcountClient';
+import { useHudyatSession } from '../routes/useHudyatSession';
 import {
   HeadcountService,
   toMillis,
@@ -346,15 +344,19 @@ function createInitialDemoData(pastDeadline: boolean): DemoDataset {
 }
 
 export function HeadcountBoard() {
-  const firebaseReady = isFirebaseConfigured();
-  const [useDemoMode, setUseDemoMode] = useState<boolean>(!firebaseReady);
-  const [drillIdInput, setDrillIdInput] = useState<string>(() => {
+  const { authUser, activeDrillId: campusActiveDrillId, firebaseReady } =
+    useHudyatSession();
+  const [demoOverride, setDemoOverride] = useState<boolean | null>(null);
+  const useDemoMode = demoOverride ?? (!firebaseReady || !authUser);
+
+  const [manualDrillId, setManualDrillId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('drillId') ?? 'active-drill';
+      return new URLSearchParams(window.location.search).get('drillId') ?? '';
     }
-    return 'active-drill';
+    return '';
   });
+  const drillIdInput =
+    manualDrillId.trim() || campusActiveDrillId || 'active-drill';
 
   // Live Firestore state
   const [liveDrill, setLiveDrill] = useState<Drill | null>(null);
@@ -564,6 +566,7 @@ export function HeadcountBoard() {
       sections: liveSections,
       mapNodes: liveNodes,
       db: getHeadcountFirestore(),
+      coordinatorUid: authUser?.uid,
     });
   }, [
     useDemoMode,
@@ -577,6 +580,7 @@ export function HeadcountBoard() {
     liveUsers,
     liveSections,
     liveNodes,
+    authUser?.uid,
   ]);
 
   const serviceRef = useRef<HeadcountService | null>(null);
@@ -742,10 +746,12 @@ export function HeadcountBoard() {
     }
   };
 
+  const actorUid = authUser?.uid || 'coord-1';
+
   const handleAcknowledgeSos = async (sosId: string) => {
     setSosActionError(null);
     try {
-      await acknowledgeSos(activeDrillId, sosId, 'coord-1', { useDemoMode });
+      await acknowledgeSos(activeDrillId, sosId, actorUid, { useDemoMode });
     } catch (err: unknown) {
       setSosActionError(
         err instanceof Error ? err.message : 'Failed to acknowledge SOS.',
@@ -756,7 +762,7 @@ export function HeadcountBoard() {
   const handleResolveSos = async (sosId: string) => {
     setSosActionError(null);
     try {
-      await resolveSos(activeDrillId, sosId, 'coord-1', { useDemoMode });
+      await resolveSos(activeDrillId, sosId, actorUid, { useDemoMode });
     } catch (err: unknown) {
       setSosActionError(
         err instanceof Error ? err.message : 'Failed to resolve SOS.',
@@ -802,10 +808,10 @@ export function HeadcountBoard() {
                 <span>Drill ID:</span>
                 <input
                   type="text"
-                  value={drillIdInput}
-                  onChange={(e) => setDrillIdInput(e.target.value)}
+                  value={manualDrillId || campusActiveDrillId || ''}
+                  onChange={(e) => setManualDrillId(e.target.value)}
                   className="min-h-[48px] px-3 rounded-lg border border-slate-400 bg-white text-slate-950 font-mono text-sm"
-                  placeholder="drillId"
+                  placeholder="active-drill"
                 />
               </label>
             )}
@@ -814,7 +820,7 @@ export function HeadcountBoard() {
               type="button"
               onClick={() => {
                 setFirestoreError(null);
-                setUseDemoMode((v) => !v);
+                setDemoOverride(!useDemoMode);
               }}
               className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 cursor-pointer"
             >

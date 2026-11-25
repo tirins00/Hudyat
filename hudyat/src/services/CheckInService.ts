@@ -54,7 +54,10 @@ export function createFirestoreCheckInStore(
     },
 
     async setVerifiedBy(studentUid, verifiedBy) {
-      await updateDoc(refFor(studentUid), { verifiedBy });
+      await updateDoc(refFor(studentUid), {
+        verifiedBy,
+        checkedInBy: verifiedBy,
+      });
     },
 
     async deleteCheckIn(studentUid) {

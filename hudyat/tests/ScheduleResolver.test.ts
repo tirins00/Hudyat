@@ -6,7 +6,7 @@ import {
   expectedList,
   groupExpectedEntries,
   slotCovers,
-} from '../src/services/ScheduleResolver';
+} from '../src/services/ScheduleResolver.ts';
 import type {
   Enrollment,
   MapNode,

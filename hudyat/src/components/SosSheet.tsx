@@ -70,10 +70,10 @@ export function SosSheet({
           setSentSosSnapshot(match);
         }
       },
-      { useDemoMode },
+      { useDemoMode, uid: studentUid },
     );
     return () => unsub();
-  }, [drillId, sentSosId, useDemoMode]);
+  }, [drillId, sentSosId, studentUid, useDemoMode]);
 
   const handleSendSos = async () => {
     setError(null);

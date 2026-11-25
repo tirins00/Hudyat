@@ -1,24 +1,32 @@
 import { useState } from 'react';
 import { SidebarNav } from '../components/SidebarNav';
 import { SosSheet } from '../components/SosSheet';
-import { isFirebaseConfigured } from '../firebase/headcountClient';
+import { useHudyatSession } from '../routes/useHudyatSession';
 
 const DEMO_DRILL_ID = 'demo-drill-2026-12-03';
 const DEMO_STUDENT_UID = 'stu-ben-lim';
 
 export function SosPage() {
-  const firebaseReady = isFirebaseConfigured();
-  const [useDemoMode, setUseDemoMode] = useState<boolean>(!firebaseReady);
-  const [drillId, setDrillId] = useState<string>(() => {
+  const { authUser, activeDrillId: campusActiveDrillId, firebaseReady } =
+    useHudyatSession();
+  const [demoOverride, setDemoOverride] = useState<boolean | null>(null);
+  const useDemoMode = demoOverride ?? (!firebaseReady || !authUser);
+
+  const [manualDrillId, setManualDrillId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return (
-        new URLSearchParams(window.location.search).get('drillId') ??
-        'active-drill'
-      );
+      return new URLSearchParams(window.location.search).get('drillId') ?? '';
     }
-    return 'active-drill';
+    return '';
   });
-  const [studentUid, setStudentUid] = useState<string>(DEMO_STUDENT_UID);
+  const [manualStudentUid, setManualStudentUid] = useState<string>('');
+
+  const drillId = manualDrillId.trim() || campusActiveDrillId || 'active-drill';
+  const studentUid =
+    manualStudentUid.trim() || authUser?.uid || DEMO_STUDENT_UID;
+  const studentName =
+    authUser?.displayName ||
+    authUser?.email ||
+    (studentUid === DEMO_STUDENT_UID ? 'Ben Lim' : undefined);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col md:flex-row font-sans">
@@ -37,7 +45,7 @@ export function SosPage() {
 
           <button
             type="button"
-            onClick={() => setUseDemoMode((v) => !v)}
+            onClick={() => setDemoOverride(!useDemoMode)}
             className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer self-start sm:self-auto"
           >
             {useDemoMode
@@ -55,8 +63,9 @@ export function SosPage() {
               <span>Drill ID</span>
               <input
                 type="text"
-                value={drillId}
-                onChange={(e) => setDrillId(e.target.value)}
+                value={manualDrillId || campusActiveDrillId || ''}
+                onChange={(e) => setManualDrillId(e.target.value)}
+                placeholder="active-drill"
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>
@@ -64,8 +73,8 @@ export function SosPage() {
               <span>Student UID</span>
               <input
                 type="text"
-                value={studentUid}
-                onChange={(e) => setStudentUid(e.target.value)}
+                value={manualStudentUid || authUser?.uid || DEMO_STUDENT_UID}
+                onChange={(e) => setManualStudentUid(e.target.value)}
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>
@@ -75,9 +84,7 @@ export function SosPage() {
         <SosSheet
           drillId={useDemoMode ? DEMO_DRILL_ID : drillId}
           studentUid={studentUid}
-          studentName={
-            studentUid === DEMO_STUDENT_UID ? 'Ben Lim' : undefined
-          }
+          studentName={studentName}
           useDemoMode={useDemoMode}
         />
       </main>

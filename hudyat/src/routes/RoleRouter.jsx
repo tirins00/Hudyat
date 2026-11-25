@@ -5,6 +5,10 @@ import { getRoleHomePath } from '../services/AuthService.js';
 import { ROLES } from '../types/models.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
+import HeadcountBoard from '../pages/HeadcountBoard.tsx';
+import CheckInScreen from '../pages/CheckInScreen.tsx';
+import AssistedCheckInPage from '../pages/AssistedCheckInPage.tsx';
+import SosPage from '../pages/SosPage.tsx';
 
 const ROLE_LABELS = Object.freeze({
   [ROLES.STUDENT]: 'Student',
@@ -13,7 +17,7 @@ const ROLE_LABELS = Object.freeze({
   [ROLES.ADMIN]: 'Admin',
 });
 
-function RoleGuard({ allowedRole, children }) {
+function RoleGuard({ allowedRole, allowedRoles, children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -30,7 +34,11 @@ function RoleGuard({ allowedRole, children }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== allowedRole) {
+  const permitted = allowedRoles
+    ? allowedRoles.includes(user.role)
+    : user.role === allowedRole;
+
+  if (!permitted) {
     return <Navigate to={getRoleHomePath(user.role)} replace />;
   }
 
@@ -121,8 +129,29 @@ function StudentHomePage() {
   return (
     <RolePlaceholderHome
       title="My Drill Plan"
-      description="Your evacuation route, assembly zone, check-in QR, and active drill alerts will appear here."
-    />
+      description="Access assembly QR check-in, peer assisted check-in, and emergency SOS during a drill."
+    >
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/student/check-in"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open QR Check-In
+        </Link>
+        <Link
+          to="/student/assisted-check-in"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Check In a Classmate
+        </Link>
+        <Link
+          to="/student/sos"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-red-950 bg-red-700 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-400"
+        >
+          Send SOS
+        </Link>
+      </div>
+    </RolePlaceholderHome>
   );
 }
 
@@ -130,8 +159,23 @@ function TeacherHomePage() {
   return (
     <RolePlaceholderHome
       title="My Sections"
-      description="Your class rosters, section drill accountability, and student check-in controls will appear here."
-    />
+      description="Mark students present, verify peer check-ins, and monitor live section headcount."
+    >
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/teacher/assisted-check-in"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Assisted Check-In
+        </Link>
+        <Link
+          to="/teacher/headcount"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Headcount Board
+        </Link>
+      </div>
+    </RolePlaceholderHome>
   );
 }
 
@@ -139,14 +183,28 @@ function CoordinatorHomePage() {
   return (
     <RolePlaceholderHome
       title="Drill Dashboard"
-      description="Live drill launch controls, phase transitions, blocked exits, check-in progress, and SOS alerts will appear here."
+      description="Monitor the live headcount board, preview expected attendance, and respond to SOS alerts."
     >
-      <Link
-        to="/coordinator/expected-list"
-        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-      >
-        Open Expected List
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/coordinator/headcount"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Headcount Board
+        </Link>
+        <Link
+          to="/coordinator/expected-list"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Expected List
+        </Link>
+        <Link
+          to="/assisted-check-in"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Assisted Check-In
+        </Link>
+      </div>
     </RolePlaceholderHome>
   );
 }
@@ -164,6 +222,32 @@ function RoleRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Student routes */}
+      <Route
+        path="/student/check-in"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <CheckInScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/student/assisted-check-in"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <AssistedCheckInPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/student/sos"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <SosPage />
+          </RoleGuard>
+        }
+      />
       <Route
         path="/student/*"
         element={
@@ -172,11 +256,39 @@ function RoleRouter() {
           </RoleGuard>
         }
       />
+
+      {/* Teacher routes */}
+      <Route
+        path="/teacher/assisted-check-in"
+        element={
+          <RoleGuard allowedRole={ROLES.TEACHER}>
+            <AssistedCheckInPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/teacher/headcount"
+        element={
+          <RoleGuard allowedRole={ROLES.TEACHER}>
+            <HeadcountBoard />
+          </RoleGuard>
+        }
+      />
       <Route
         path="/teacher/*"
         element={
           <RoleGuard allowedRole={ROLES.TEACHER}>
             <TeacherHomePage />
+          </RoleGuard>
+        }
+      />
+
+      {/* Coordinator routes */}
+      <Route
+        path="/coordinator/headcount"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <HeadcountBoard />
           </RoleGuard>
         }
       />
@@ -196,6 +308,8 @@ function RoleRouter() {
           </RoleGuard>
         }
       />
+
+      {/* Admin routes */}
       <Route
         path="/admin/*"
         element={
@@ -204,6 +318,58 @@ function RoleRouter() {
           </RoleGuard>
         }
       />
+
+      {/* Top-level route aliases for Dev 3 modules */}
+      <Route
+        path="/headcount"
+        element={
+          <RoleGuard
+            allowedRoles={[ROLES.COORDINATOR, ROLES.TEACHER, ROLES.ADMIN]}
+          >
+            <HeadcountBoard />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/expected-list"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <ExpectedListPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/check-in"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <CheckInScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/assisted-check-in"
+        element={
+          <RoleGuard
+            allowedRoles={[
+              ROLES.TEACHER,
+              ROLES.STUDENT,
+              ROLES.COORDINATOR,
+              ROLES.ADMIN,
+            ]}
+          >
+            <AssistedCheckInPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/sos"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <SosPage />
+          </RoleGuard>
+        }
+      />
+
       <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<HomeRedirect />} />
     </Routes>

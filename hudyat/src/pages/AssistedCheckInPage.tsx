@@ -6,10 +6,8 @@ import {
   query,
 } from 'firebase/firestore';
 import { SidebarNav } from '../components/SidebarNav';
-import {
-  getHeadcountFirestore,
-  isFirebaseConfigured,
-} from '../firebase/headcountClient';
+import { getHeadcountFirestore } from '../firebase/headcountClient';
+import { useHudyatSession } from '../routes/useHudyatSession';
 import {
   CheckInService,
   createFirestoreCheckInStore,
@@ -124,12 +122,21 @@ function createDemoRoster(): {
 }
 
 export function AssistedCheckInPage() {
-  const firebaseReady = isFirebaseConfigured();
-  const [useDemoMode, setUseDemoMode] = useState<boolean>(!firebaseReady);
+  const { authUser, activeDrillId: campusActiveDrillId, firebaseReady } =
+    useHudyatSession();
+  const [demoOverride, setDemoOverride] = useState<boolean | null>(null);
+  const useDemoMode = demoOverride ?? (!firebaseReady || !authUser);
 
-  const [campusId, setCampusId] = useState<string>(DEMO_CAMPUS_ID);
-  const [drillId, setDrillId] = useState<string>('active-drill');
-  const [teacherUid, setTeacherUid] = useState<string>(DEMO_TEACHER_UID);
+  const [manualCampusId, setManualCampusId] = useState<string>('');
+  const [manualDrillId, setManualDrillId] = useState<string>('');
+  const [manualTeacherUid, setManualTeacherUid] = useState<string>('');
+
+  const campusId =
+    manualCampusId.trim() || authUser?.campusId || DEMO_CAMPUS_ID;
+  const drillId = manualDrillId.trim() || campusActiveDrillId || 'active-drill';
+  const teacherUid =
+    manualTeacherUid.trim() || authUser?.uid || DEMO_TEACHER_UID;
+  const peerActorUid = authUser?.uid || DEMO_PEER_UID;
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [actionError, setActionError] = useState<string | null>(null);
@@ -262,9 +269,9 @@ export function AssistedCheckInPage() {
   );
 
   const peerService = useMemo(
-    () => createServiceForActor(DEMO_PEER_UID),
+    () => createServiceForActor(peerActorUid),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [useDemoMode, activeDrillId, activeCampusId, activeNodes, defaultAssemblyNodeId, demoStore],
+    [useDemoMode, activeDrillId, activeCampusId, activeNodes, peerActorUid, defaultAssemblyNodeId, demoStore],
   );
 
   const students = useMemo(
@@ -373,7 +380,7 @@ export function AssistedCheckInPage() {
             onClick={() => {
               setActionError(null);
               setActionNotice(null);
-              setUseDemoMode((v) => !v);
+              setDemoOverride(!useDemoMode);
             }}
             className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer self-start sm:self-auto"
           >
@@ -392,8 +399,8 @@ export function AssistedCheckInPage() {
               <span>Campus ID</span>
               <input
                 type="text"
-                value={campusId}
-                onChange={(e) => setCampusId(e.target.value)}
+                value={manualCampusId || authUser?.campusId || DEMO_CAMPUS_ID}
+                onChange={(e) => setManualCampusId(e.target.value)}
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>
@@ -401,17 +408,18 @@ export function AssistedCheckInPage() {
               <span>Drill ID</span>
               <input
                 type="text"
-                value={drillId}
-                onChange={(e) => setDrillId(e.target.value)}
+                value={manualDrillId || campusActiveDrillId || ''}
+                onChange={(e) => setManualDrillId(e.target.value)}
+                placeholder="active-drill"
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-bold text-slate-800">
-              <span>Teacher UID</span>
+              <span>Actor UID</span>
               <input
                 type="text"
-                value={teacherUid}
-                onChange={(e) => setTeacherUid(e.target.value)}
+                value={manualTeacherUid || authUser?.uid || DEMO_TEACHER_UID}
+                onChange={(e) => setManualTeacherUid(e.target.value)}
                 className="min-h-[48px] px-3 rounded-lg border border-slate-400 text-sm font-mono text-slate-950"
               />
             </label>

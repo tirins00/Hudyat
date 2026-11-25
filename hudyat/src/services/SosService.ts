@@ -6,6 +6,7 @@ import {
   query,
   setDoc,
   updateDoc,
+  where,
   type Firestore,
 } from 'firebase/firestore';
 import { getHeadcountFirestore } from '../firebase/headcountClient';
@@ -69,6 +70,7 @@ export interface SosStore {
     drillId: string,
     callback: (alerts: Sos[]) => void,
     onError?: (error: Error) => void,
+    filterUid?: string,
   ): () => void;
 }
 
@@ -160,17 +162,22 @@ export function createMemorySosStore(initial: readonly Sos[] = []): SosStore & {
       notifyDrill(drillId);
     },
 
-    subscribe(drillId, callback) {
+    subscribe(drillId, callback, _onError, filterUid) {
       let subs = listeners.get(drillId);
       if (!subs) {
         subs = new Set();
         listeners.set(drillId, subs);
       }
-      subs.add(callback);
-      callback(listForDrill(drillId));
+      const wrapped = (alerts: Sos[]) => {
+        callback(
+          filterUid ? alerts.filter((a) => a.uid === filterUid) : alerts,
+        );
+      };
+      subs.add(wrapped);
+      wrapped(listForDrill(drillId));
 
       return () => {
-        subs?.delete(callback);
+        subs?.delete(wrapped);
       };
     },
 
@@ -231,8 +238,11 @@ export function createFirestoreSosStore(db: Firestore): SosStore {
       });
     },
 
-    subscribe(drillId, callback, onError) {
-      const q = query(collection(db, 'drills', drillId, 'sos'));
+    subscribe(drillId, callback, onError, filterUid) {
+      const colRef = collection(db, 'drills', drillId, 'sos');
+      const q = filterUid
+        ? query(colRef, where('uid', '==', filterUid))
+        : query(colRef);
       return onSnapshot(
         q,
         (snap) => {
@@ -358,32 +368,58 @@ export function subscribeToSosAlerts(
   options?: {
     store?: SosStore;
     useDemoMode?: boolean;
+    uid?: string;
     onError?: (error: Error) => void;
   },
 ): () => void {
   if (options?.store) {
-    return options.store.subscribe(drillId, callback, options.onError);
+    return options.store.subscribe(
+      drillId,
+      callback,
+      options.onError,
+      options.uid,
+    );
   }
   if (options?.useDemoMode) {
-    return demoSosStore.subscribe(drillId, callback, options.onError);
+    return demoSosStore.subscribe(
+      drillId,
+      callback,
+      options.onError,
+      options.uid,
+    );
   }
 
   const db = getHeadcountFirestore();
   if (!db) {
-    return demoSosStore.subscribe(drillId, callback, options?.onError);
+    return demoSosStore.subscribe(
+      drillId,
+      callback,
+      options?.onError,
+      options?.uid,
+    );
   }
 
   let activeUnsub: (() => void) | null = null;
   let fallbackUnsub: (() => void) | null = null;
   const firestoreStore = createFirestoreSosStore(db);
 
-  activeUnsub = firestoreStore.subscribe(drillId, callback, (err) => {
-    options?.onError?.(err);
-    // Graceful fallback to Demo Mode if Firestore rules block read access.
-    if (!fallbackUnsub) {
-      fallbackUnsub = demoSosStore.subscribe(drillId, callback);
-    }
-  });
+  activeUnsub = firestoreStore.subscribe(
+    drillId,
+    callback,
+    (err) => {
+      options?.onError?.(err);
+      // Graceful fallback to Demo Mode if Firestore rules block read access.
+      if (!fallbackUnsub) {
+        fallbackUnsub = demoSosStore.subscribe(
+          drillId,
+          callback,
+          undefined,
+          options?.uid,
+        );
+      }
+    },
+    options?.uid,
+  );
 
   return () => {
     activeUnsub?.();
