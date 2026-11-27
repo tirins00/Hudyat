@@ -1,4 +1,5 @@
 import type { MapNode, NodeType } from '../types/models';
+import { parseQrPayload } from './QrCodeParser.js';
 
 export interface NodeRef {
   node: MapNode;
@@ -36,6 +37,17 @@ interface DecodedQrPayload {
 }
 
 function extractPayload(raw: string): DecodedQrPayload {
+  // 0. Pipe-delimited form from CampusSeeder / QrCodeParser.js: HUDYAT|<campusId>|<nodeType>|<nodeId>
+  if (raw.startsWith('HUDYAT|')) {
+    const parsed = parseQrPayload(raw);
+    if (parsed.valid) {
+      return {
+        campusId: parsed.campusId,
+        nodeId: parsed.nodeId,
+      };
+    }
+  }
+
   // 1. URI form: hudyat://<campusId>/<nodeId>
   const uriMatch = /^hudyat:\/\/([^/]+)\/(.+)$/i.exec(raw);
   if (uriMatch) {

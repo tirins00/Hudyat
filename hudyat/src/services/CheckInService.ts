@@ -8,7 +8,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import type { CheckIn } from '../types/models';
-import { QrCodeParser } from './QrCodeParser';
+import { QrCodeParser } from './QrCodeParser.ts';
 
 export interface CheckInStore {
   getCheckIn(studentUid: string): Promise<CheckIn | null>;

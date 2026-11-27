@@ -16,7 +16,7 @@ import {
   createFirestoreCheckInStore,
   createMemoryCheckInStore,
 } from '../services/CheckInService';
-import { QrCodeParser } from '../services/QrCodeParser';
+import { QrCodeParser } from '../services/QrCodeParser.ts';
 import type { CheckIn, MapNode } from '../types/models';
 
 const QR_READER_ELEMENT_ID = 'hudyat-assembly-qr-reader';

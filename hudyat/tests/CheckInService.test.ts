@@ -4,7 +4,7 @@ import {
   CheckInService,
   createMemoryCheckInStore,
 } from '../src/services/CheckInService';
-import { QrCodeError, QrCodeParser } from '../src/services/QrCodeParser';
+import { QrCodeError, QrCodeParser } from '../src/services/QrCodeParser.ts';
 import type { MapNode } from '../src/types/models';
 
 const campusId = 'citu-main';
@@ -74,6 +74,14 @@ describe('QrCodeParser', () => {
     expect(roomRef).toMatchObject({
       nodeId: 'eng-401',
       type: 'room',
+    });
+
+    // Also supports CampusSeeder / QrCodeParser.js pipe format: HUDYAT|<campusId>|<nodeType>|<nodeId>
+    const pipeRef = parser.parseAssembly('HUDYAT|citu-main|assembly|assembly-b');
+    expect(pipeRef).toMatchObject({
+      nodeId: 'assembly-b',
+      campusId,
+      type: 'assembly',
     });
   });
 

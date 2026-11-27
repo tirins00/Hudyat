@@ -14,7 +14,7 @@ import {
   createMemoryCheckInStore,
 } from '../services/CheckInService';
 import { isVerifiedCheckIn } from '../services/HeadcountService';
-import { QrCodeParser } from '../services/QrCodeParser';
+import { QrCodeParser } from '../services/QrCodeParser.ts';
 import type { CheckIn, MapNode, User } from '../types/models';
 
 const DEMO_CAMPUS_ID = 'citu-main';
