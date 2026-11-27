@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAuth } from './authContext.js';
 import { getRoleHomePath } from '../services/AuthService.js';
-import { seedCitUCampusToFirestore } from '../services/CampusSeeder.js';
 import { ROLES } from '../types/models.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
@@ -14,6 +13,10 @@ import SosPage from '../pages/SosPage.tsx';
 import DrillDashboard from '../pages/DrillDashboard.jsx';
 import AlertScreen from '../pages/AlertScreen.jsx';
 import StepScreen from '../pages/StepScreen.jsx';
+import RouteScreen from '../pages/RouteScreen.jsx';
+import QrSheet from '../pages/QrSheet.jsx';
+import CampusSetupPage from '../pages/CampusSetupPage.jsx';
+import ReportPage from '../pages/ReportPage.jsx';
 
 const ROLE_LABELS = Object.freeze({
   [ROLES.STUDENT]: 'Student',
@@ -134,12 +137,18 @@ function StudentHomePage() {
   return (
     <RolePlaceholderHome
       title="My Drill Plan"
-      description="Access assembly QR check-in, peer assisted check-in, and emergency SOS during a drill."
+      description="Your evacuation route, assembly zone, QR check-in, step confirmation, and active drill alerts."
     >
       <div className="flex flex-wrap gap-3">
         <Link
-          to="/student/check-in"
+          to="/student/route"
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          View Evacuation Route
+        </Link>
+        <Link
+          to="/student/check-in"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
           Open QR Check-In
         </Link>
@@ -176,7 +185,7 @@ function TeacherHomePage() {
   return (
     <RolePlaceholderHome
       title="My Sections"
-      description="Mark students present, verify peer check-ins, and monitor live section headcount."
+      description="Mark students present, verify peer check-ins, monitor live section headcount, and view evacuation routes."
     >
       <div className="flex flex-wrap gap-3">
         <Link
@@ -190,6 +199,12 @@ function TeacherHomePage() {
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
           Open Headcount Board
+        </Link>
+        <Link
+          to="/teacher/route"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          View Evacuation Route
         </Link>
       </div>
     </RolePlaceholderHome>
@@ -227,74 +242,37 @@ function CoordinatorHomePage() {
         >
           Open Assisted Check-In
         </Link>
-      </div>
-    </RolePlaceholderHome>
-  );
-}
-
-function AdminHomePage() {
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState(null);
-  const [seedError, setSeedError] = useState('');
-
-  async function handleSeedCampus() {
-    setIsSeeding(true);
-    setSeedResult(null);
-    setSeedError('');
-    try {
-      const summary = await seedCitUCampusToFirestore();
-      setSeedResult(summary);
-    } catch (error) {
-      const code = error?.code ? ` (${error.code})` : '';
-      setSeedError(
-        `${error?.message || 'Failed to seed CIT-U sample campus.'}${code}`,
-      );
-    } finally {
-      setIsSeeding(false);
-    }
-  }
-
-  return (
-    <RolePlaceholderHome
-      title="Campus Setup"
-      description="Campus buildings, floor plans, indoor navigation graph, policies, schedules, and user administration will appear here."
-    >
-      <div className="flex flex-wrap gap-3">
         <Link
-          to="/admin/roster-import"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+          to="/coordinator/route"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
-          Open Roster Import
+          Evacuation Route
         </Link>
-        <button
-          type="button"
-          onClick={handleSeedCampus}
-          disabled={isSeeding}
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800 disabled:opacity-60"
+        <Link
+          to="/coordinator/campus-setup"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
-          {isSeeding ? 'Seeding CIT-U Campus…' : 'Seed CIT-U Sample Campus'}
-        </button>
+          Campus Setup
+        </Link>
+        <Link
+          to="/coordinator/qr-sheet"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Assembly QR Sheets
+        </Link>
+        <Link
+          to="/coordinator/roster-import"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Roster Import
+        </Link>
+        <Link
+          to="/coordinator/reports"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Drill Reports
+        </Link>
       </div>
-
-      {seedResult && (
-        <p
-          role="status"
-          className="mt-4 rounded-lg border-2 border-emerald-800 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950"
-        >
-          Seeded campus <strong>{seedResult.campusId}</strong>:{' '}
-          {seedResult.nodesSeeded} map nodes and {seedResult.edgesSeeded} map
-          edges saved.
-        </p>
-      )}
-
-      {seedError && (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg border-2 border-red-800 bg-red-50 px-4 py-3 text-sm font-semibold text-red-950"
-        >
-          {seedError}
-        </p>
-      )}
     </RolePlaceholderHome>
   );
 }
@@ -346,6 +324,14 @@ function RoleRouter() {
         }
       />
       <Route
+        path="/student/route"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <RouteScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/student/*"
         element={
           <RoleGuard allowedRole={ROLES.STUDENT}>
@@ -368,6 +354,14 @@ function RoleRouter() {
         element={
           <RoleGuard allowedRole={ROLES.TEACHER}>
             <HeadcountBoard />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/teacher/route"
+        element={
+          <RoleGuard allowedRole={ROLES.TEACHER}>
+            <RouteScreen />
           </RoleGuard>
         }
       />
@@ -406,10 +400,42 @@ function RoleRouter() {
         }
       />
       <Route
+        path="/coordinator/route"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <RouteScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/coordinator/campus-setup"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <CampusSetupPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/coordinator/qr-sheet"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <QrSheet />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/coordinator/roster-import"
         element={
           <RoleGuard allowedRole={ROLES.COORDINATOR}>
             <RosterImportPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/coordinator/reports"
+        element={
+          <RoleGuard allowedRole={ROLES.COORDINATOR}>
+            <ReportPage />
           </RoleGuard>
         }
       />
@@ -424,6 +450,22 @@ function RoleRouter() {
 
       {/* Admin routes */}
       <Route
+        path="/admin/route"
+        element={
+          <RoleGuard allowedRole={ROLES.ADMIN}>
+            <RouteScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/qr-sheet"
+        element={
+          <RoleGuard allowedRole={ROLES.ADMIN}>
+            <QrSheet />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/admin/roster-import"
         element={
           <RoleGuard allowedRole={ROLES.ADMIN}>
@@ -432,10 +474,26 @@ function RoleRouter() {
         }
       />
       <Route
+        path="/admin/reports"
+        element={
+          <RoleGuard allowedRole={ROLES.ADMIN}>
+            <ReportPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/campus-setup"
+        element={
+          <RoleGuard allowedRole={ROLES.ADMIN}>
+            <CampusSetupPage />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/admin/*"
         element={
           <RoleGuard allowedRole={ROLES.ADMIN}>
-            <AdminHomePage />
+            <CampusSetupPage />
           </RoleGuard>
         }
       />
