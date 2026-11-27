@@ -11,6 +11,9 @@ import HeadcountBoard from '../pages/HeadcountBoard.tsx';
 import CheckInScreen from '../pages/CheckInScreen.tsx';
 import AssistedCheckInPage from '../pages/AssistedCheckInPage.tsx';
 import SosPage from '../pages/SosPage.tsx';
+import DrillDashboard from '../pages/DrillDashboard.jsx';
+import AlertScreen from '../pages/AlertScreen.jsx';
+import StepScreen from '../pages/StepScreen.jsx';
 
 const ROLE_LABELS = Object.freeze({
   [ROLES.STUDENT]: 'Student',
@@ -152,6 +155,18 @@ function StudentHomePage() {
         >
           Send SOS
         </Link>
+        <Link
+          to="/student/alert"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Alert Screen
+        </Link>
+        <Link
+          to="/student/steps"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Step Confirmation
+        </Link>
       </div>
     </RolePlaceholderHome>
   );
@@ -188,6 +203,12 @@ function CoordinatorHomePage() {
       description="Monitor the live headcount board, preview expected attendance, and respond to SOS alerts."
     >
       <div className="flex flex-wrap gap-3">
+        <Link
+          to="/coordinator/drills"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Manage Drills (Start / Advance / End)
+        </Link>
         <Link
           to="/coordinator/headcount"
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
@@ -309,6 +330,22 @@ function RoleRouter() {
         }
       />
       <Route
+        path="/student/alert"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <AlertScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/student/steps"
+        element={
+          <RoleGuard allowedRole={ROLES.STUDENT}>
+            <StepScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/student/*"
         element={
           <RoleGuard allowedRole={ROLES.STUDENT}>
@@ -344,6 +381,14 @@ function RoleRouter() {
       />
 
       {/* Coordinator routes */}
+      <Route
+        path="/coordinator/drills"
+        element={
+          <RoleGuard allowedRoles={[ROLES.COORDINATOR, ROLES.ADMIN]}>
+            <DrillDashboard />
+          </RoleGuard>
+        }
+      />
       <Route
         path="/coordinator/headcount"
         element={
@@ -442,6 +487,36 @@ function RoleRouter() {
         element={
           <RoleGuard allowedRole={ROLES.STUDENT}>
             <SosPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/alert"
+        element={
+          <RoleGuard
+            allowedRoles={[
+              ROLES.STUDENT,
+              ROLES.TEACHER,
+              ROLES.COORDINATOR,
+              ROLES.ADMIN,
+            ]}
+          >
+            <AlertScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/steps"
+        element={
+          <RoleGuard
+            allowedRoles={[
+              ROLES.STUDENT,
+              ROLES.TEACHER,
+              ROLES.COORDINATOR,
+              ROLES.ADMIN,
+            ]}
+          >
+            <StepScreen />
           </RoleGuard>
         }
       />
