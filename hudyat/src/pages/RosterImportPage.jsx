@@ -15,14 +15,19 @@ const COORDINATOR_SIDEBAR_ITEMS = Object.freeze([
   { label: 'Drill Dashboard', to: '/coordinator', end: true },
   { label: 'Headcount Board', to: '/coordinator/headcount' },
   { label: 'Expected List', to: '/coordinator/expected-list' },
+  { label: 'Evacuation Route', to: '/coordinator/route' },
   { label: 'Campus Setup', to: '/coordinator/campus-setup' },
+  { label: 'Assembly QR Sheets', to: '/coordinator/qr-sheet' },
   { label: 'Roster Import', to: '/coordinator/roster-import' },
   { label: 'Reports', to: '/coordinator/reports' },
 ]);
 
 const ADMIN_SIDEBAR_ITEMS = Object.freeze([
   { label: 'Campus Setup', to: '/admin', end: true },
+  { label: 'Evacuation Route', to: '/admin/route' },
+  { label: 'Assembly QR Sheets', to: '/admin/qr-sheet' },
   { label: 'Roster Import', to: '/admin/roster-import' },
+  { label: 'Reports', to: '/admin/reports' },
 ]);
 
 const TABS = Object.freeze({

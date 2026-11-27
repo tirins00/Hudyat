@@ -11,7 +11,9 @@ const SIDEBAR_ITEMS = Object.freeze([
   { label: 'Drill Dashboard', to: '/coordinator', end: true },
   { label: 'Headcount Board', to: '/coordinator/headcount' },
   { label: 'Expected List', to: '/coordinator/expected-list' },
+  { label: 'Evacuation Route', to: '/coordinator/route' },
   { label: 'Campus Setup', to: '/coordinator/campus-setup' },
+  { label: 'Assembly QR Sheets', to: '/coordinator/qr-sheet' },
   { label: 'Roster Import', to: '/coordinator/roster-import' },
   { label: 'Reports', to: '/coordinator/reports' },
 ]);
