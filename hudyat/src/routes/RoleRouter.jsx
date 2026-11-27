@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAuth } from './authContext.js';
 import { getRoleHomePath } from '../services/AuthService.js';
+import { seedCitUCampusToFirestore } from '../services/CampusSeeder.js';
 import { ROLES } from '../types/models.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
@@ -211,17 +212,68 @@ function CoordinatorHomePage() {
 }
 
 function AdminHomePage() {
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState(null);
+  const [seedError, setSeedError] = useState('');
+
+  async function handleSeedCampus() {
+    setIsSeeding(true);
+    setSeedResult(null);
+    setSeedError('');
+    try {
+      const summary = await seedCitUCampusToFirestore();
+      setSeedResult(summary);
+    } catch (error) {
+      const code = error?.code ? ` (${error.code})` : '';
+      setSeedError(
+        `${error?.message || 'Failed to seed CIT-U sample campus.'}${code}`,
+      );
+    } finally {
+      setIsSeeding(false);
+    }
+  }
+
   return (
     <RolePlaceholderHome
       title="Campus Setup"
       description="Campus buildings, floor plans, indoor navigation graph, policies, schedules, and user administration will appear here."
     >
-      <Link
-        to="/admin/roster-import"
-        className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-      >
-        Open Roster Import
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/admin/roster-import"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          Open Roster Import
+        </Link>
+        <button
+          type="button"
+          onClick={handleSeedCampus}
+          disabled={isSeeding}
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800 disabled:opacity-60"
+        >
+          {isSeeding ? 'Seeding CIT-U Campus…' : 'Seed CIT-U Sample Campus'}
+        </button>
+      </div>
+
+      {seedResult && (
+        <p
+          role="status"
+          className="mt-4 rounded-lg border-2 border-emerald-800 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950"
+        >
+          Seeded campus <strong>{seedResult.campusId}</strong>:{' '}
+          {seedResult.nodesSeeded} map nodes and {seedResult.edgesSeeded} map
+          edges saved.
+        </p>
+      )}
+
+      {seedError && (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border-2 border-red-800 bg-red-50 px-4 py-3 text-sm font-semibold text-red-950"
+        >
+          {seedError}
+        </p>
+      )}
     </RolePlaceholderHome>
   );
 }
