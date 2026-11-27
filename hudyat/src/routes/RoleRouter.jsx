@@ -1,4 +1,3 @@
-import RosterImportPage from '../pages/RosterImportPage.jsx';
 import { useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAuth } from './authContext.js';
@@ -6,6 +5,11 @@ import { getRoleHomePath } from '../services/AuthService.js';
 import { ROLES } from '../types/models.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
+import RosterImportPage from '../pages/RosterImportPage.jsx';
+import RouteScreen from '../pages/RouteScreen.jsx';
+import QrSheet from '../pages/QrSheet.jsx';
+import CampusSetupPage from '../pages/CampusSetupPage.jsx';
+import ReportPage from '../pages/ReportPage.jsx';
 import HeadcountBoard from '../pages/HeadcountBoard.tsx';
 import CheckInScreen from '../pages/CheckInScreen.tsx';
 import AssistedCheckInPage from '../pages/AssistedCheckInPage.tsx';
@@ -13,10 +17,6 @@ import SosPage from '../pages/SosPage.tsx';
 import DrillDashboard from '../pages/DrillDashboard.jsx';
 import AlertScreen from '../pages/AlertScreen.jsx';
 import StepScreen from '../pages/StepScreen.jsx';
-import RouteScreen from '../pages/RouteScreen.jsx';
-import QrSheet from '../pages/QrSheet.jsx';
-import CampusSetupPage from '../pages/CampusSetupPage.jsx';
-import ReportPage from '../pages/ReportPage.jsx';
 
 const ROLE_LABELS = Object.freeze({
   [ROLES.STUDENT]: 'Student',
@@ -137,7 +137,7 @@ function StudentHomePage() {
   return (
     <RolePlaceholderHome
       title="My Drill Plan"
-      description="Your evacuation route, assembly zone, QR check-in, step confirmation, and active drill alerts."
+      description="View your evacuation route, access assembly QR check-in, peer assisted check-in, step confirmation, and emergency alerts/SOS."
     >
       <div className="flex flex-wrap gap-3">
         <Link
@@ -185,12 +185,18 @@ function TeacherHomePage() {
   return (
     <RolePlaceholderHome
       title="My Sections"
-      description="Mark students present, verify peer check-ins, monitor live section headcount, and view evacuation routes."
+      description="View evacuation routes, mark students present, verify peer check-ins, and monitor live section headcount."
     >
       <div className="flex flex-wrap gap-3">
         <Link
-          to="/teacher/assisted-check-in"
+          to="/teacher/route"
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
+        >
+          View Evacuation Route
+        </Link>
+        <Link
+          to="/teacher/assisted-check-in"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
           Open Assisted Check-In
         </Link>
@@ -199,12 +205,6 @@ function TeacherHomePage() {
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
           Open Headcount Board
-        </Link>
-        <Link
-          to="/teacher/route"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          View Evacuation Route
         </Link>
       </div>
     </RolePlaceholderHome>
@@ -215,7 +215,7 @@ function CoordinatorHomePage() {
   return (
     <RolePlaceholderHome
       title="Drill Dashboard"
-      description="Monitor the live headcount board, preview expected attendance, and respond to SOS alerts."
+      description="Monitor the live headcount board, preview expected attendance, manage campus routes and rosters, and respond to SOS alerts."
     >
       <div className="flex flex-wrap gap-3">
         <Link
@@ -264,7 +264,7 @@ function CoordinatorHomePage() {
           to="/coordinator/roster-import"
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
         >
-          Roster Import
+          Open Roster Import
         </Link>
         <Link
           to="/coordinator/reports"
