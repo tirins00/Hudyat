@@ -1,22 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import AppShell from '../components/AppShell.jsx';
 import { useAuth } from '../routes/authContext.js';
 import {
   fetchScheduleInputs,
   groupExpectedEntries,
   resolveExpectedList,
 } from '../services/ScheduleResolver.js';
-
-const SIDEBAR_ITEMS = Object.freeze([
-  { label: 'Drill Dashboard', to: '/coordinator', end: true },
-  { label: 'Headcount Board', to: '/coordinator/headcount' },
-  { label: 'Expected List', to: '/coordinator/expected-list' },
-  { label: 'Evacuation Route', to: '/coordinator/route' },
-  { label: 'Campus Setup', to: '/coordinator/campus-setup' },
-  { label: 'Assembly QR Sheets', to: '/coordinator/qr-sheet' },
-  { label: 'Roster Import', to: '/coordinator/roster-import' },
-  { label: 'Reports', to: '/coordinator/reports' },
-]);
 
 function formatLocalDate(date) {
   const year = date.getFullYear();
@@ -49,8 +38,7 @@ function buildLocalDateTime(dateStr, timeStr) {
 }
 
 function ExpectedListPage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState(() =>
     formatLocalDate(new Date()),
@@ -67,7 +55,6 @@ function ExpectedListPage() {
     data: null,
     error: '',
   });
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!campusId) {
@@ -149,88 +136,11 @@ function ExpectedListPage() {
     scheduleData && scheduleData.scheduleSlots.length > 0,
   );
 
-  async function handleLogout() {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      navigate('/login', { replace: true });
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }
-
-  const displayName = user?.displayName || user?.email || 'Coordinator';
-
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950 flex flex-col md:flex-row">
-      {/* Left Sidebar Navigation */}
-      <aside
-        aria-label="Coordinator navigation"
-        className="w-full md:w-64 shrink-0 bg-white border-b-2 md:border-b-0 md:border-r-2 border-slate-900 flex flex-col justify-between"
-      >
-        <div>
-          <div className="px-5 py-5 border-b-2 border-slate-200">
-            <p className="text-xl font-extrabold tracking-widest text-slate-950">
-              HUDYAT
-            </p>
-            <p className="mt-0.5 text-xs font-bold uppercase tracking-wide text-slate-700">
-              Coordinator
-            </p>
-          </div>
-
-          <nav className="p-3 space-y-1.5">
-            {SIDEBAR_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  [
-                    'flex min-h-12 items-center rounded-lg px-4 py-2.5 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-800',
-                    isActive
-                      ? 'bg-slate-950 text-white'
-                      : 'text-slate-900 hover:bg-slate-200',
-                  ].join(' ')
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div className="p-4 border-t-2 border-slate-200 space-y-3">
-          <div>
-            <p className="text-sm font-bold text-slate-950 truncate">
-              {displayName}
-            </p>
-            <span className="inline-block mt-1 rounded-full bg-slate-900 px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
-              Coordinator
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="w-full min-h-12 min-w-12 rounded-lg border-2 border-slate-950 bg-white px-4 py-2 text-sm font-bold text-slate-950 hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-800 disabled:opacity-60"
-          >
-            {isLoggingOut ? 'Logging out…' : 'Log out'}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Panel */}
-      <main className="flex-1 p-4 sm:p-8 max-w-5xl w-full mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950">
-            Expected List
-          </h1>
-          <p className="mt-1 text-sm font-medium text-slate-700">
-            Preview expected student attendance by section and room for any date
-            and time.
-          </p>
-        </header>
+    <AppShell
+      title="Expected List"
+      subtitle="Preview expected student attendance by section and room for any date and time."
+    >
 
         {/* Controls */}
         <section
@@ -375,8 +285,7 @@ function ExpectedListPage() {
             </p>
           </section>
         ) : null}
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

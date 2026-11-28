@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { NODE_TYPES } from '../src/types/models.js';
+import { CIT_U_SEED_DATA } from '../src/services/CampusSeeder.js';
 import {
   ALLOWED_NODE_TYPES,
   QR_PREFIX,
   formatQrPayload,
   isValidQrPayload,
+  isVerifiedEvacuationResponse,
   parseQrPayload,
+  validateAssemblyQrPayload,
+  validateManualAssemblyCode,
 } from '../src/services/QrCodeParser.js';
 
 describe('QrCodeParser', () => {
@@ -211,5 +215,137 @@ describe('QrCodeParser', () => {
     const match = parseQrPayload(raw, { expectedCampusId: 'cit-u' });
     expect(match.valid).toBe(true);
     expect(isValidQrPayload(raw, { expectedCampusId: 'cit-u' })).toBe(true);
+  });
+
+  it('validates assembly QR payloads strictly for Phase 2 evacuation confirmation', () => {
+    const validAssembly = validateAssemblyQrPayload(
+      'HUDYAT|cit-u|assembly|ASM-QUAD-01',
+      'cit-u',
+    );
+    expect(validAssembly).toEqual({
+      valid: true,
+      campusId: 'cit-u',
+      nodeType: NODE_TYPES.ASSEMBLY,
+      nodeId: 'ASM-QUAD-01',
+      qrCode: 'HUDYAT|cit-u|assembly|ASM-QUAD-01',
+      raw: 'HUDYAT|cit-u|assembly|ASM-QUAD-01',
+    });
+
+    // Reject non-Hudyat QR codes
+    const nonHudyat = validateAssemblyQrPayload('https://example.com/checkin', 'cit-u');
+    expect(nonHudyat.valid).toBe(false);
+    expect(nonHudyat.error).toMatch(/prefix/i);
+
+    // Reject wrong campus IDs
+    const wrongCampus = validateAssemblyQrPayload(
+      'HUDYAT|other-campus|assembly|ASM-QUAD-01',
+      'cit-u',
+    );
+    expect(wrongCampus.valid).toBe(false);
+    expect(wrongCampus.error).toMatch(/campus mismatch/i);
+
+    // Reject non-assembly nodes (rooms, corridors, stairs, exits)
+    for (const nonAssemblyQr of [
+      'HUDYAT|cit-u|room|NGE-301',
+      'HUDYAT|cit-u|corridor|NGE-3F-CORR',
+      'HUDYAT|cit-u|stair|NGE-STAIR-WEST',
+      'HUDYAT|cit-u|exit|EXIT-NORTH',
+    ]) {
+      const res = validateAssemblyQrPayload(nonAssemblyQr, 'cit-u');
+      expect(res.valid).toBe(false);
+      expect(res.error).toMatch(/assembly/i);
+    }
+  });
+
+  it('verifies evacuation response records for Coordinator dashboard counting', () => {
+    expect(
+      isVerifiedEvacuationResponse(
+        {
+          nodeId: 'ASM-QUAD-01',
+          currentNodeId: 'ASM-QUAD-01',
+          qrCode: 'HUDYAT|cit-u|assembly|ASM-QUAD-01',
+        },
+        'cit-u',
+      ),
+    ).toBe(true);
+
+    // Reject unverified DCH-only response (no QR)
+    expect(
+      isVerifiedEvacuationResponse({ status: 'dch_acknowledged', nodeId: null, qrCode: null }, 'cit-u'),
+    ).toBe(false);
+
+    // Reject room QR or wrong-campus QR or mismatched nodeId
+    expect(
+      isVerifiedEvacuationResponse(
+        { nodeId: 'NGE-301', qrCode: 'HUDYAT|cit-u|room|NGE-301' },
+        'cit-u',
+      ),
+    ).toBe(false);
+    expect(
+      isVerifiedEvacuationResponse(
+        { nodeId: 'ASM-QUAD-01', qrCode: 'HUDYAT|other|assembly|ASM-QUAD-01' },
+        'cit-u',
+      ),
+    ).toBe(false);
+    expect(
+      isVerifiedEvacuationResponse(
+        { nodeId: 'ASM-OTHER', qrCode: 'HUDYAT|cit-u|assembly|ASM-QUAD-01' },
+        'cit-u',
+      ),
+    ).toBe(false);
+  });
+
+  it('validates printed manual assembly codes against CIT-U seed assembly nodes', () => {
+    const options = {
+      expectedCampusId: 'cit-u',
+      mapNodes: CIT_U_SEED_DATA.mapNodes,
+    };
+
+    // Short assembly code (case-insensitive with whitespace)
+    const shortRes = validateManualAssemblyCode('  asm-quad  ', options);
+    expect(shortRes).toEqual({
+      valid: true,
+      campusId: 'cit-u',
+      nodeType: NODE_TYPES.ASSEMBLY,
+      nodeId: 'ASM-QUAD',
+      label: 'CIT-U Quadrangle Assembly Area',
+      qrCode: 'HUDYAT|cit-u|assembly|ASM-QUAD',
+      raw: 'asm-quad',
+      method: 'manual_code',
+    });
+    expect(isVerifiedEvacuationResponse(shortRes, 'cit-u')).toBe(true);
+
+    // Full Hudyat assembly QR payload typed manually
+    const fullRes = validateManualAssemblyCode(
+      'HUDYAT|cit-u|assembly|ASM-QUAD',
+      options,
+    );
+    expect(fullRes.valid).toBe(true);
+    expect(fullRes.nodeId).toBe('ASM-QUAD');
+    expect(fullRes.method).toBe('manual_code');
+
+    // Reject empty or random/unrecognized codes
+    expect(validateManualAssemblyCode('', options).valid).toBe(false);
+    expect(validateManualAssemblyCode('RANDOM-999', options).valid).toBe(false);
+    expect(
+      validateManualAssemblyCode('HUDYAT|cit-u|assembly|FAKE-ASM', options).valid,
+    ).toBe(false);
+
+    // Reject non-assembly nodes (rooms, stairs, exits)
+    const roomShort = validateManualAssemblyCode('NGE-301', options);
+    expect(roomShort.valid).toBe(false);
+    expect(roomShort.error).toMatch(/not an assembly area/i);
+
+    const roomFull = validateManualAssemblyCode('HUDYAT|cit-u|room|NGE-301', options);
+    expect(roomFull.valid).toBe(false);
+    expect(roomFull.error).toMatch(/assembly/i);
+
+    // Reject wrong campus
+    const wrongCampus = validateManualAssemblyCode(
+      'HUDYAT|other-campus|assembly|ASM-QUAD',
+      options,
+    );
+    expect(wrongCampus.valid).toBe(false);
+    expect(wrongCampus.error).toMatch(/campus mismatch/i);
   });
 });

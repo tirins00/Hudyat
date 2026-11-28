@@ -179,6 +179,33 @@ export class CheckInService {
   }
 
   /**
+   * Camera-broken fallback: validates a printed assembly code against campus assembly nodes
+   * and records an idempotent verified check-in with `method: 'manual_code'`.
+   */
+  async checkInManualCode(
+    code: string,
+    studentUid: string = this.actorUid,
+  ): Promise<CheckIn> {
+    const nodeRef = this.qrCodeParser.parseAssembly(code);
+    const checkIn: CheckIn = {
+      studentUid,
+      drillId: this.drillId,
+      method: 'manual_code' as CheckIn['method'],
+      assemblyNodeId: nodeRef.nodeId,
+      checkedInBy: studentUid,
+      byUid: studentUid,
+      verifiedBy: null,
+      checkedInAt: this.now(),
+    };
+
+    const result = await this.store.createIfAbsent(checkIn);
+    if (!result.created) {
+      this.onDuplicate?.(result.checkIn);
+    }
+    return result.checkIn;
+  }
+
+  /**
    * UC-5.2: Teacher marks a student present (immediately verified).
    */
   async markPresent(

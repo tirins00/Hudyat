@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './authContext.js';
 import { getRoleHomePath } from '../services/AuthService.js';
 import { ROLES } from '../types/models.js';
+import AppShell from '../components/AppShell.jsx';
+import ActiveDrillWatcher from '../components/ActiveDrillWatcher.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
 import RosterImportPage from '../pages/RosterImportPage.jsx';
@@ -17,13 +18,6 @@ import SosPage from '../pages/SosPage.tsx';
 import DrillDashboard from '../pages/DrillDashboard.jsx';
 import AlertScreen from '../pages/AlertScreen.jsx';
 import StepScreen from '../pages/StepScreen.jsx';
-
-const ROLE_LABELS = Object.freeze({
-  [ROLES.STUDENT]: 'Student',
-  [ROLES.TEACHER]: 'Teacher',
-  [ROLES.COORDINATOR]: 'Coordinator',
-  [ROLES.ADMIN]: 'Admin',
-});
 
 function RoleGuard({ allowedRole, allowedRoles, children }) {
   const { user, loading } = useAuth();
@@ -73,515 +67,475 @@ function HomeRedirect() {
   return <Navigate to={getRoleHomePath(user.role)} replace />;
 }
 
-function RolePlaceholderHome({ title, description, children }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  async function handleLogout() {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      navigate('/login', { replace: true });
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }
-
-  const displayName = user?.displayName || user?.email || 'Campus User';
-  const roleLabel = ROLE_LABELS[user?.role] || user?.role || 'User';
-
-  return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
-      <header className="bg-white border-b-2 border-slate-900">
-        <div className="mx-auto max-w-4xl px-4 py-4 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-extrabold tracking-widest uppercase text-slate-700">
-              HUDYAT
-            </p>
-            <h1 className="text-2xl font-extrabold text-slate-950">{title}</h1>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-950">{displayName}</p>
-              <span className="inline-block mt-0.5 rounded-full bg-slate-900 px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
-                {roleLabel}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="min-h-12 min-w-12 rounded-lg border-2 border-slate-950 bg-white px-4 py-2 text-sm font-bold text-slate-950 hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-800 disabled:opacity-60"
-            >
-              {isLoggingOut ? 'Logging out…' : 'Log out'}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <section className="rounded-xl border-2 border-slate-300 bg-white p-6">
-          <h2 className="text-lg font-bold text-slate-950">{title}</h2>
-          <p className="mt-2 text-base text-slate-700">{description}</p>
-          {children && <div className="mt-5">{children}</div>}
-        </section>
-      </main>
-    </div>
-  );
-}
-
 function StudentHomePage() {
   return (
-    <RolePlaceholderHome
+    <AppShell
       title="My Drill Plan"
-      description="View your evacuation route, access assembly QR check-in, peer assisted check-in, step confirmation, and emergency alerts/SOS."
+      subtitle="Confirm your safety status and assembly check-in, follow your evacuation route, help a classmate, or send an SOS."
     >
-      <div className="flex flex-wrap gap-3">
-        <Link
-          to="/student/route"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          View Evacuation Route
-        </Link>
-        <Link
-          to="/student/check-in"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open QR Check-In
-        </Link>
-        <Link
-          to="/student/assisted-check-in"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Check In a Classmate
-        </Link>
-        <Link
-          to="/student/sos"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-red-950 bg-red-700 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-400"
-        >
-          Send SOS
-        </Link>
-        <Link
-          to="/student/alert"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Alert Screen
-        </Link>
-        <Link
-          to="/student/steps"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Step Confirmation
-        </Link>
-      </div>
-    </RolePlaceholderHome>
+      <section className="rounded-xl border-2 border-slate-900 bg-white p-6 space-y-5">
+        <div>
+          <h2 className="text-lg font-extrabold text-slate-950">Quick Drill Actions</h2>
+          <p className="mt-1 text-sm font-medium text-slate-700">
+            When an earthquake drill starts, you will be automatically alerted and guided to the Emergency Alert screen.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <Link
+            to="/student/step"
+            className="hudyat-btn hudyat-btn-primary"
+          >
+            Confirm Safety &amp; Assembly Check-In
+          </Link>
+          <Link
+            to="/student/route"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            View Evacuation Route
+          </Link>
+          <Link
+            to="/student/assisted-check-in"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Check In a Classmate
+          </Link>
+          <Link
+            to="/student/alert"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Emergency Alert Screen
+          </Link>
+          <Link
+            to="/student/sos"
+            className="hudyat-btn hudyat-btn-danger"
+          >
+            Send SOS
+          </Link>
+        </div>
+      </section>
+    </AppShell>
   );
 }
 
 function TeacherHomePage() {
   return (
-    <RolePlaceholderHome
+    <AppShell
       title="My Sections"
-      description="View evacuation routes, mark students present, verify peer check-ins, and monitor live section headcount."
+      subtitle="View evacuation routes, mark students present, verify peer check-ins, and monitor live section headcount."
     >
-      <div className="flex flex-wrap gap-3">
-        <Link
-          to="/teacher/route"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          View Evacuation Route
-        </Link>
-        <Link
-          to="/teacher/assisted-check-in"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open Assisted Check-In
-        </Link>
-        <Link
-          to="/teacher/headcount"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open Headcount Board
-        </Link>
-      </div>
-    </RolePlaceholderHome>
+      <section className="rounded-xl border-2 border-slate-900 bg-white p-6 space-y-5">
+        <h2 className="text-lg font-extrabold text-slate-950">Teacher Drill Tools</h2>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <Link
+            to="/teacher/headcount"
+            className="hudyat-btn hudyat-btn-primary"
+          >
+            Open Headcount Board
+          </Link>
+          <Link
+            to="/teacher/assisted-check-in"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Open Assisted Check-In
+          </Link>
+          <Link
+            to="/teacher/route"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            View Evacuation Route
+          </Link>
+        </div>
+      </section>
+    </AppShell>
   );
 }
 
 function CoordinatorHomePage() {
   return (
-    <RolePlaceholderHome
+    <AppShell
       title="Drill Dashboard"
-      description="Monitor the live headcount board, preview expected attendance, manage campus routes and rosters, and respond to SOS alerts."
+      subtitle="Start or advance campus drills, monitor the live headcount board, preview expected attendance, and manage campus routes and rosters."
     >
-      <div className="flex flex-wrap gap-3">
-        <Link
-          to="/coordinator/drills"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Manage Drills (Start / Advance / End)
-        </Link>
-        <Link
-          to="/coordinator/headcount"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open Headcount Board
-        </Link>
-        <Link
-          to="/coordinator/expected-list"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open Expected List
-        </Link>
-        <Link
-          to="/assisted-check-in"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open Assisted Check-In
-        </Link>
-        <Link
-          to="/coordinator/route"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Evacuation Route
-        </Link>
-        <Link
-          to="/coordinator/campus-setup"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Campus Setup
-        </Link>
-        <Link
-          to="/coordinator/qr-sheet"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Assembly QR Sheets
-        </Link>
-        <Link
-          to="/coordinator/roster-import"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Open Roster Import
-        </Link>
-        <Link
-          to="/coordinator/reports"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-slate-950 bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-800"
-        >
-          Drill Reports
-        </Link>
-      </div>
-    </RolePlaceholderHome>
+      <section className="rounded-xl border-2 border-slate-900 bg-white p-6 space-y-5">
+        <h2 className="text-lg font-extrabold text-slate-950">Coordinator Operations</h2>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <Link
+            to="/coordinator/drills"
+            className="hudyat-btn hudyat-btn-primary"
+          >
+            Manage Drills (Start / Advance / End)
+          </Link>
+          <Link
+            to="/coordinator/headcount"
+            className="hudyat-btn hudyat-btn-primary"
+          >
+            Open Headcount Board
+          </Link>
+          <Link
+            to="/coordinator/expected-list"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Open Expected List
+          </Link>
+          <Link
+            to="/assisted-check-in"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Open Assisted Check-In
+          </Link>
+          <Link
+            to="/coordinator/route"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Evacuation Route
+          </Link>
+          <Link
+            to="/coordinator/campus-setup"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Campus Setup
+          </Link>
+          <Link
+            to="/coordinator/qr-sheet"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Assembly QR Sheets
+          </Link>
+          <Link
+            to="/coordinator/roster-import"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Open Roster Import
+          </Link>
+          <Link
+            to="/coordinator/reports"
+            className="hudyat-btn hudyat-btn-secondary"
+          >
+            Drill Reports
+          </Link>
+        </div>
+      </section>
+    </AppShell>
   );
 }
 
 function RoleRouter() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
+    <>
+      <ActiveDrillWatcher />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Student routes */}
-      <Route
-        path="/student/check-in"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <CheckInScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/student/assisted-check-in"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <AssistedCheckInPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/student/sos"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <SosPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/student/alert"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <AlertScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/student/steps"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <StepScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/student/route"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <RouteScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/student/*"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <StudentHomePage />
-          </RoleGuard>
-        }
-      />
+        {/* Student routes */}
+        <Route
+          path="/student/check-in"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <CheckInScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/assisted-check-in"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <AssistedCheckInPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/sos"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <SosPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/alert"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <AlertScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/step"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <StepScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/steps"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <StepScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/route"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <RouteScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/*"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <StudentHomePage />
+            </RoleGuard>
+          }
+        />
 
-      {/* Teacher routes */}
-      <Route
-        path="/teacher/assisted-check-in"
-        element={
-          <RoleGuard allowedRole={ROLES.TEACHER}>
-            <AssistedCheckInPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/teacher/headcount"
-        element={
-          <RoleGuard allowedRole={ROLES.TEACHER}>
-            <HeadcountBoard />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/teacher/route"
-        element={
-          <RoleGuard allowedRole={ROLES.TEACHER}>
-            <RouteScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/teacher/*"
-        element={
-          <RoleGuard allowedRole={ROLES.TEACHER}>
-            <TeacherHomePage />
-          </RoleGuard>
-        }
-      />
+        {/* Teacher routes */}
+        <Route
+          path="/teacher/assisted-check-in"
+          element={
+            <RoleGuard allowedRole={ROLES.TEACHER}>
+              <AssistedCheckInPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/teacher/headcount"
+          element={
+            <RoleGuard allowedRole={ROLES.TEACHER}>
+              <HeadcountBoard />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/teacher/route"
+          element={
+            <RoleGuard allowedRole={ROLES.TEACHER}>
+              <RouteScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/teacher/*"
+          element={
+            <RoleGuard allowedRole={ROLES.TEACHER}>
+              <TeacherHomePage />
+            </RoleGuard>
+          }
+        />
 
-      {/* Coordinator routes */}
-      <Route
-        path="/coordinator/drills"
-        element={
-          <RoleGuard allowedRoles={[ROLES.COORDINATOR, ROLES.ADMIN]}>
-            <DrillDashboard />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/headcount"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <HeadcountBoard />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/expected-list"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <ExpectedListPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/route"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <RouteScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/campus-setup"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <CampusSetupPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/qr-sheet"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <QrSheet />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/roster-import"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <RosterImportPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/reports"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <ReportPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/coordinator/*"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <CoordinatorHomePage />
-          </RoleGuard>
-        }
-      />
+        {/* Coordinator routes */}
+        <Route
+          path="/coordinator/drills"
+          element={
+            <RoleGuard allowedRoles={[ROLES.COORDINATOR, ROLES.ADMIN]}>
+              <DrillDashboard />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/headcount"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <HeadcountBoard />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/expected-list"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <ExpectedListPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/route"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <RouteScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/campus-setup"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <CampusSetupPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/qr-sheet"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <QrSheet />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/roster-import"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <RosterImportPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/reports"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <ReportPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coordinator/*"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <CoordinatorHomePage />
+            </RoleGuard>
+          }
+        />
 
-      {/* Admin routes */}
-      <Route
-        path="/admin/route"
-        element={
-          <RoleGuard allowedRole={ROLES.ADMIN}>
-            <RouteScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/qr-sheet"
-        element={
-          <RoleGuard allowedRole={ROLES.ADMIN}>
-            <QrSheet />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/roster-import"
-        element={
-          <RoleGuard allowedRole={ROLES.ADMIN}>
-            <RosterImportPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/reports"
-        element={
-          <RoleGuard allowedRole={ROLES.ADMIN}>
-            <ReportPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/campus-setup"
-        element={
-          <RoleGuard allowedRole={ROLES.ADMIN}>
-            <CampusSetupPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/*"
-        element={
-          <RoleGuard allowedRole={ROLES.ADMIN}>
-            <CampusSetupPage />
-          </RoleGuard>
-        }
-      />
+        {/* Admin routes */}
+        <Route
+          path="/admin/route"
+          element={
+            <RoleGuard allowedRole={ROLES.ADMIN}>
+              <RouteScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/qr-sheet"
+          element={
+            <RoleGuard allowedRole={ROLES.ADMIN}>
+              <QrSheet />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/roster-import"
+          element={
+            <RoleGuard allowedRole={ROLES.ADMIN}>
+              <RosterImportPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <RoleGuard allowedRole={ROLES.ADMIN}>
+              <ReportPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/campus-setup"
+          element={
+            <RoleGuard allowedRole={ROLES.ADMIN}>
+              <CampusSetupPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/*"
+          element={
+            <RoleGuard allowedRole={ROLES.ADMIN}>
+              <CampusSetupPage />
+            </RoleGuard>
+          }
+        />
 
-      {/* Top-level route aliases for Dev 3 modules */}
-      <Route
-        path="/headcount"
-        element={
-          <RoleGuard
-            allowedRoles={[ROLES.COORDINATOR, ROLES.TEACHER, ROLES.ADMIN]}
-          >
-            <HeadcountBoard />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/expected-list"
-        element={
-          <RoleGuard allowedRole={ROLES.COORDINATOR}>
-            <ExpectedListPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/check-in"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <CheckInScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/assisted-check-in"
-        element={
-          <RoleGuard
-            allowedRoles={[
-              ROLES.TEACHER,
-              ROLES.STUDENT,
-              ROLES.COORDINATOR,
-              ROLES.ADMIN,
-            ]}
-          >
-            <AssistedCheckInPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/sos"
-        element={
-          <RoleGuard allowedRole={ROLES.STUDENT}>
-            <SosPage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/alert"
-        element={
-          <RoleGuard
-            allowedRoles={[
-              ROLES.STUDENT,
-              ROLES.TEACHER,
-              ROLES.COORDINATOR,
-              ROLES.ADMIN,
-            ]}
-          >
-            <AlertScreen />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/steps"
-        element={
-          <RoleGuard
-            allowedRoles={[
-              ROLES.STUDENT,
-              ROLES.TEACHER,
-              ROLES.COORDINATOR,
-              ROLES.ADMIN,
-            ]}
-          >
-            <StepScreen />
-          </RoleGuard>
-        }
-      />
+        {/* Top-level route aliases for Dev 3 modules */}
+        <Route
+          path="/headcount"
+          element={
+            <RoleGuard
+              allowedRoles={[ROLES.COORDINATOR, ROLES.TEACHER, ROLES.ADMIN]}
+            >
+              <HeadcountBoard />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/expected-list"
+          element={
+            <RoleGuard allowedRole={ROLES.COORDINATOR}>
+              <ExpectedListPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/check-in"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <CheckInScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/assisted-check-in"
+          element={
+            <RoleGuard
+              allowedRoles={[
+                ROLES.TEACHER,
+                ROLES.STUDENT,
+                ROLES.COORDINATOR,
+                ROLES.ADMIN,
+              ]}
+            >
+              <AssistedCheckInPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/sos"
+          element={
+            <RoleGuard allowedRole={ROLES.STUDENT}>
+              <SosPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/alert"
+          element={
+            <RoleGuard
+              allowedRoles={[
+                ROLES.STUDENT,
+                ROLES.TEACHER,
+                ROLES.COORDINATOR,
+                ROLES.ADMIN,
+              ]}
+            >
+              <AlertScreen />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/steps"
+          element={
+            <RoleGuard
+              allowedRoles={[
+                ROLES.STUDENT,
+                ROLES.TEACHER,
+                ROLES.COORDINATOR,
+                ROLES.ADMIN,
+              ]}
+            >
+              <StepScreen />
+            </RoleGuard>
+          }
+        />
 
-      <Route path="/" element={<HomeRedirect />} />
-      <Route path="*" element={<HomeRedirect />} />
-    </Routes>
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="*" element={<HomeRedirect />} />
+      </Routes>
+    </>
   );
 }
 

@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+/* Safe visual alert pulse: 1.2s cycle (~0.83 Hz), strictly under the 3 Hz limit. */
+@keyframes hudyat-safe-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.hudyat-alert-pulse {
+  animation: hudyat-safe-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hudyat-alert-pulse {
+    animation: none;
+  }
+}
+
+/* Standardized Hudyat Button System (min 48x48px touch target, >=4.5:1 contrast) */
+@layer components {
+  .hudyat-btn {
+    @apply inline-flex min-h-12 min-w-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border-2 px-5 py-2.5 text-center text-sm font-extrabold tracking-wide transition-colors cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .hudyat-btn-primary {
+    @apply border-slate-950 bg-slate-950 text-white hover:bg-slate-800;
+  }
+
+  .hudyat-btn-secondary {
+    @apply border-slate-950 bg-white text-slate-950 hover:bg-slate-100;
+  }
+
+  .hudyat-btn-danger {
+    @apply border-red-950 bg-red-700 text-white hover:bg-red-800 focus:ring-red-400;
+  }
+
+  .hudyat-btn-ghost {
+    @apply border-transparent bg-transparent text-slate-900 hover:border-slate-300 hover:bg-slate-200;
+  }
+}

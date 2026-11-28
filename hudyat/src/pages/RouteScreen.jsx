@@ -350,7 +350,7 @@ function RouteScreen() {
                 />
                 <button
                   type="submit"
-                  className="min-h-12 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-800"
+                  className="hudyat-btn hudyat-btn-primary"
                 >
                   Set via QR
                 </button>
@@ -393,7 +393,7 @@ function RouteScreen() {
                     <button
                       type="button"
                       onClick={() => setBlockedNodeIds([])}
-                      className="min-h-12 rounded-lg border-2 border-slate-900 bg-white px-3 py-1 text-xs font-bold text-slate-950 hover:bg-slate-200"
+                      className="hudyat-btn hudyat-btn-secondary w-auto px-3 text-xs"
                     >
                       Clear All Blocked ({blockedNodeIds.length})
                     </button>

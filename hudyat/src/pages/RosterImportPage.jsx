@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import AppShell from '../components/AppShell.jsx';
 import { useAuth } from '../routes/authContext.js';
-import { ROLES } from '../types/models.js';
 import {
   SAMPLE_ROSTER_CSV,
   SAMPLE_SCHEDULE_CSV,
@@ -10,25 +9,6 @@ import {
   parseRosterCsv,
   parseScheduleCsv,
 } from '../services/RosterImporter.js';
-
-const COORDINATOR_SIDEBAR_ITEMS = Object.freeze([
-  { label: 'Drill Dashboard', to: '/coordinator', end: true },
-  { label: 'Headcount Board', to: '/coordinator/headcount' },
-  { label: 'Expected List', to: '/coordinator/expected-list' },
-  { label: 'Evacuation Route', to: '/coordinator/route' },
-  { label: 'Campus Setup', to: '/coordinator/campus-setup' },
-  { label: 'Assembly QR Sheets', to: '/coordinator/qr-sheet' },
-  { label: 'Roster Import', to: '/coordinator/roster-import' },
-  { label: 'Reports', to: '/coordinator/reports' },
-]);
-
-const ADMIN_SIDEBAR_ITEMS = Object.freeze([
-  { label: 'Campus Setup', to: '/admin', end: true },
-  { label: 'Evacuation Route', to: '/admin/route' },
-  { label: 'Assembly QR Sheets', to: '/admin/qr-sheet' },
-  { label: 'Roster Import', to: '/admin/roster-import' },
-  { label: 'Reports', to: '/admin/reports' },
-]);
 
 const TABS = Object.freeze({
   ROSTER: 'roster',
@@ -48,11 +28,9 @@ function downloadCsvFile(filename, content) {
 }
 
 function RosterImportPage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState(TABS.ROSTER);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Roster CSV state
   const [rosterFileName, setRosterFileName] = useState('');
@@ -71,20 +49,6 @@ function RosterImportPage() {
   const [scheduleImportError, setScheduleImportError] = useState('');
 
   const campusId = user?.campusId || '';
-  const isAdmin = user?.role === ROLES.ADMIN;
-  const sidebarItems = isAdmin ? ADMIN_SIDEBAR_ITEMS : COORDINATOR_SIDEBAR_ITEMS;
-  const roleLabel = isAdmin ? 'Admin' : 'Coordinator';
-  const displayName = user?.displayName || user?.email || roleLabel;
-
-  async function handleLogout() {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      navigate('/login', { replace: true });
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }
 
   async function handleRosterFileChange(event) {
     const file = event.target.files?.[0];
@@ -195,75 +159,10 @@ function RosterImportPage() {
     !isImportingSchedules;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950 flex flex-col md:flex-row">
-      {/* Left Sidebar Navigation */}
-      <aside
-        aria-label={`${roleLabel} navigation`}
-        className="w-full md:w-64 shrink-0 bg-white border-b-2 md:border-b-0 md:border-r-2 border-slate-900 flex flex-col justify-between"
-      >
-        <div>
-          <div className="px-5 py-5 border-b-2 border-slate-200">
-            <p className="text-xl font-extrabold tracking-widest text-slate-950">
-              HUDYAT
-            </p>
-            <p className="mt-0.5 text-xs font-bold uppercase tracking-wide text-slate-700">
-              {roleLabel}
-            </p>
-          </div>
-
-          <nav className="p-3 space-y-1.5">
-            {sidebarItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  [
-                    'flex min-h-12 items-center rounded-lg px-4 py-2.5 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-800',
-                    isActive
-                      ? 'bg-slate-950 text-white'
-                      : 'text-slate-900 hover:bg-slate-200',
-                  ].join(' ')
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div className="p-4 border-t-2 border-slate-200 space-y-3">
-          <div>
-            <p className="text-sm font-bold text-slate-950 truncate">
-              {displayName}
-            </p>
-            <span className="inline-block mt-1 rounded-full bg-slate-900 px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
-              {roleLabel}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="w-full min-h-12 min-w-12 rounded-lg border-2 border-slate-950 bg-white px-4 py-2 text-sm font-bold text-slate-950 hover:bg-slate-950 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-800 disabled:opacity-60"
-          >
-            {isLoggingOut ? 'Logging out…' : 'Log out'}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Panel */}
-      <main className="flex-1 p-4 sm:p-8 max-w-5xl w-full mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950">
-            Roster &amp; Schedule Import
-          </h1>
-          <p className="mt-1 text-sm font-medium text-slate-700">
-            Upload validated CSV files to populate sections, student
-            enrollments, and class schedules.
-          </p>
-        </header>
+    <AppShell
+      title="Roster & Schedule Import"
+      subtitle="Upload validated CSV files to populate sections, student enrollments, and class schedules."
+    >
 
         {!campusId && (
           <div
@@ -646,7 +545,7 @@ function RosterImportPage() {
                 type="button"
                 onClick={handleImportSchedules}
                 disabled={!canImportSchedules}
-                className="min-h-12 min-w-48 rounded-lg bg-slate-950 px-6 py-3 text-base font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-800 disabled:cursor-not-allowed disabled:bg-slate-500"
+                className="hudyat-btn hudyat-btn-primary"
               >
                 {isImportingSchedules
                   ? 'Importing to Firestore…'
@@ -655,8 +554,7 @@ function RosterImportPage() {
             </div>
           </section>
         )}
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

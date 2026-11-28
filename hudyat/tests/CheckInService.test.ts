@@ -4,6 +4,7 @@ import {
   CheckInService,
   createMemoryCheckInStore,
 } from '../src/services/CheckInService';
+import { isVerifiedCheckIn } from '../src/services/HeadcountService';
 import { QrCodeError, QrCodeParser } from '../src/services/QrCodeParser.ts';
 import type { MapNode } from '../src/types/models';
 
@@ -241,5 +242,44 @@ describe('CheckInService', () => {
     await expect(teacherService.rejectPeerCheckIn('stu-ana')).rejects.toThrow(
       /only pending peer check-ins/i,
     );
+  });
+
+  it('records manual_code assembly check-ins idempotently and counts them as verified', async () => {
+    const firstTs = Timestamp.fromMillis(1_700_000_250_000);
+    const secondTs = Timestamp.fromMillis(1_700_000_300_000);
+    let currentTs = firstTs;
+    const onDuplicate = vi.fn();
+    const store = createMemoryCheckInStore();
+    const service = new CheckInService({
+      drillId,
+      actorUid: 'stu-manual',
+      qrCodeParser: parser,
+      store,
+      now: () => currentTs,
+      onDuplicate,
+    });
+
+    const created = await service.checkInManualCode('HUDYAT|citu-main|assembly|assembly-a');
+    expect(created).toMatchObject({
+      studentUid: 'stu-manual',
+      drillId,
+      method: 'manual_code',
+      assemblyNodeId: 'assembly-a',
+      checkedInBy: 'stu-manual',
+      checkedInAt: firstTs,
+    });
+    expect(isVerifiedCheckIn(created)).toBe(true);
+
+    // Rejects non-assembly nodes via manual_code as well
+    await expect(
+      service.checkInManualCode('HUDYAT|citu-main|room|eng-401'),
+    ).rejects.toThrow(QrCodeError);
+
+    // Duplicate manual code submission preserves original timestamp
+    currentTs = secondTs;
+    const dup = await service.checkInManualCode('HUDYAT|citu-main|assembly|assembly-b');
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
+    expect(dup.assemblyNodeId).toBe('assembly-a');
+    expect(dup.checkedInAt).toEqual(firstTs);
   });
 });

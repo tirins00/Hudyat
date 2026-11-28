@@ -6,7 +6,7 @@ import {
   onSnapshot,
   query,
 } from 'firebase/firestore';
-import { SidebarNav } from '../components/SidebarNav';
+import AppShell from '../components/AppShell.jsx';
 import { getHeadcountFirestore } from '../firebase/headcountClient';
 import { useHudyatSession } from '../routes/useHudyatSession';
 import {
@@ -784,50 +784,45 @@ export function HeadcountBoard() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col md:flex-row font-sans">
-      <SidebarNav activePath="/headcount" />
+    <AppShell
+      title="Headcount Board"
+      subtitle={
+        activeDrill
+          ? `${activeDrill.title} • Phase: ${activeDrill.phase.toUpperCase()}`
+          : 'No active drill selected'
+      }
+      maxWidth="max-w-6xl"
+      actions={
+        <>
+          {!useDemoMode && (
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <span>Drill ID:</span>
+              <input
+                type="text"
+                value={manualDrillId || campusActiveDrillId || ''}
+                onChange={(e) => setManualDrillId(e.target.value)}
+                className="min-h-[48px] px-3 rounded-lg border border-slate-400 bg-white text-slate-950 font-mono text-sm"
+                placeholder="active-drill"
+              />
+            </label>
+          )}
 
-      {/* Main Content */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto space-y-6">
-        {/* Header & Mode Controls */}
-        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-950 tracking-tight">
-              Headcount Board
-            </h1>
-            <p className="text-sm font-medium text-slate-700 mt-1">
-              {activeDrill
-                ? `${activeDrill.title} • Phase: ${activeDrill.phase.toUpperCase()}`
-                : 'No active drill selected'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {!useDemoMode && (
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <span>Drill ID:</span>
-                <input
-                  type="text"
-                  value={manualDrillId || campusActiveDrillId || ''}
-                  onChange={(e) => setManualDrillId(e.target.value)}
-                  className="min-h-[48px] px-3 rounded-lg border border-slate-400 bg-white text-slate-950 font-mono text-sm"
-                  placeholder="active-drill"
-                />
-              </label>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setFirestoreError(null);
-                setDemoOverride(!useDemoMode);
-              }}
-              className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 cursor-pointer"
-            >
-              {useDemoMode ? 'Mode: Demo (Switch to Live)' : 'Mode: Live Firestore (Switch to Demo)'}
-            </button>
-          </div>
-        </header>
+          <button
+            type="button"
+            onClick={() => {
+              setFirestoreError(null);
+              setDemoOverride(!useDemoMode);
+            }}
+            className="hudyat-btn hudyat-btn-primary"
+          >
+            {useDemoMode
+              ? 'Mode: Demo (Switch to Live)'
+              : 'Mode: Live Firestore (Switch to Demo)'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-6">
 
         {/* Demo Mode / Firebase Status Banner */}
         {useDemoMode ? (
@@ -1192,8 +1187,8 @@ export function HeadcountBoard() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
 

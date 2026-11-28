@@ -192,3 +192,195 @@ export function parseQrPayload(rawText, options = {}) {
 export function isValidQrPayload(rawText, options) {
   return parseQrPayload(rawText, options).valid;
 }
+
+/**
+ * Validates that `rawText` is a Hudyat Assembly Area QR code matching `expectedCampusId`
+ * (i.e. `HUDYAT|<campusId>|assembly|<nodeId>`).
+ *
+ * Rejects non-Hudyat QR codes, campus mismatches, and non-assembly node types
+ * (rooms, corridors, stairs, exits, lifts, common areas).
+ *
+ * @param {unknown} rawText
+ * @param {string} [expectedCampusId='cit-u']
+ * @returns {{ valid: true, campusId: string, nodeType: 'assembly', nodeId: string, qrCode: string, raw: string } | { valid: false, error: string }}
+ */
+export function validateAssemblyQrPayload(rawText, expectedCampusId = 'cit-u') {
+  const campus =
+    typeof expectedCampusId === 'string' && expectedCampusId.trim()
+      ? expectedCampusId.trim()
+      : 'cit-u';
+
+  const parsed = parseQrPayload(rawText, { expectedCampusId: campus });
+  if (!parsed.valid) {
+    return {
+      valid: false,
+      error: parsed.error,
+    };
+  }
+
+  if (parsed.nodeType !== NODE_TYPES.ASSEMBLY) {
+    return {
+      valid: false,
+      error: `Invalid QR node type "${parsed.nodeType}": scan an Assembly Area QR code (HUDYAT|${campus}|assembly|<nodeId>).`,
+    };
+  }
+
+  return {
+    valid: true,
+    campusId: parsed.campusId,
+    nodeType: NODE_TYPES.ASSEMBLY,
+    nodeId: parsed.nodeId,
+    qrCode: parsed.raw,
+    raw: parsed.raw,
+  };
+}
+
+/**
+ * Returns true if a drill response document represents a QR-verified evacuation
+ * arrival at an assembly node for `expectedCampusId`.
+ *
+ * @param {Record<string, unknown> | null | undefined} response
+ * @param {string} [expectedCampusId='cit-u']
+ * @returns {boolean}
+ */
+export function isVerifiedEvacuationResponse(response, expectedCampusId = 'cit-u') {
+  if (!response || typeof response !== 'object') {
+    return false;
+  }
+  const nodeId =
+    typeof response.nodeId === 'string' && response.nodeId.trim()
+      ? response.nodeId.trim()
+      : typeof response.currentNodeId === 'string' && response.currentNodeId.trim()
+        ? response.currentNodeId.trim()
+        : '';
+
+  if (!nodeId || typeof response.qrCode !== 'string') {
+    return false;
+  }
+
+  const validation = validateAssemblyQrPayload(response.qrCode, expectedCampusId);
+  return validation.valid && validation.nodeId === nodeId;
+}
+
+/**
+ * Validates a student-entered printed assembly code fallback (either short node code
+ * like `ASM-QUAD` or full QR payload `HUDYAT|cit-u|assembly|ASM-QUAD`) against known
+ * campus assembly nodes (`type === 'assembly'`).
+ *
+ * Rejects empty strings, random/unrecognized codes, wrong campus IDs, and non-assembly nodes.
+ *
+ * @param {unknown} rawInput
+ * @param {{ expectedCampusId?: string, mapNodes?: ReadonlyArray<{ id: string, campusId?: string, type: string, label?: string }> }} [options={}]
+ * @returns {{ valid: true, campusId: string, nodeType: 'assembly', nodeId: string, label: string, qrCode: string, raw: string, method: 'manual_code' } | { valid: false, error: string }}
+ */
+export function validateManualAssemblyCode(rawInput, options = {}) {
+  const safeOptions = options && typeof options === 'object' ? options : {};
+  const expectedCampusId =
+    typeof safeOptions.expectedCampusId === 'string' && safeOptions.expectedCampusId.trim()
+      ? safeOptions.expectedCampusId.trim()
+      : 'cit-u';
+  const mapNodes = Array.isArray(safeOptions.mapNodes) ? safeOptions.mapNodes : [];
+
+  if (typeof rawInput !== 'string' || !rawInput.trim()) {
+    return {
+      valid: false,
+      error: 'Enter the printed Assembly Area code posted at your muster point (e.g., ASM-QUAD).',
+    };
+  }
+
+  const trimmed = rawInput.trim();
+  const normalizedCampus = expectedCampusId.toLowerCase();
+
+  const campusNodes = mapNodes.filter(
+    (node) =>
+      node &&
+      typeof node.id === 'string' &&
+      (!node.campusId || node.campusId.trim().toLowerCase() === normalizedCampus),
+  );
+  const assemblyNodes = campusNodes.filter((node) => node.type === NODE_TYPES.ASSEMBLY);
+  const sampleHint =
+    assemblyNodes.length > 0
+      ? assemblyNodes.map((n) => n.id).join(', ')
+      : 'ASM-QUAD';
+
+  // Case 1: Full pipe-delimited Hudyat QR string
+  if (trimmed.includes(QR_DELIMITER)) {
+    const qrResult = validateAssemblyQrPayload(trimmed, expectedCampusId);
+    if (!qrResult.valid) {
+      return { valid: false, error: qrResult.error };
+    }
+
+    const matchedAssembly = assemblyNodes.find(
+      (node) => node.id.toLowerCase() === qrResult.nodeId.toLowerCase(),
+    );
+    if (assemblyNodes.length > 0 && !matchedAssembly) {
+      return {
+        valid: false,
+        error: `Unknown assembly code "${qrResult.nodeId}". Enter a valid ${expectedCampusId} assembly area code (e.g., ${sampleHint}).`,
+      };
+    }
+
+    const canonicalNodeId = matchedAssembly ? matchedAssembly.id : qrResult.nodeId;
+    const canonicalQr = formatQrPayload({
+      campusId: expectedCampusId,
+      nodeType: NODE_TYPES.ASSEMBLY,
+      nodeId: canonicalNodeId,
+    });
+
+    return {
+      valid: true,
+      campusId: expectedCampusId,
+      nodeType: NODE_TYPES.ASSEMBLY,
+      nodeId: canonicalNodeId,
+      label: matchedAssembly?.label || canonicalNodeId,
+      qrCode: canonicalQr,
+      raw: trimmed,
+      method: 'manual_code',
+    };
+  }
+
+  // Case 2: Short printed assembly node code (e.g., ASM-QUAD)
+  const upperTrimmed = trimmed.toLowerCase();
+  const matchedAssembly = assemblyNodes.find(
+    (node) => node.id.toLowerCase() === upperTrimmed,
+  );
+
+  if (!matchedAssembly) {
+    const matchedOther = campusNodes.find(
+      (node) => node.id.toLowerCase() === upperTrimmed,
+    );
+    if (matchedOther) {
+      return {
+        valid: false,
+        error: `"${matchedOther.id}" is a ${matchedOther.type}, not an assembly area. Enter a posted Assembly Area code (e.g., ${sampleHint}).`,
+      };
+    }
+
+    return {
+      valid: false,
+      error: `Unrecognized assembly code "${trimmed}". Enter a valid ${expectedCampusId} assembly area code (e.g., ${sampleHint}).`,
+    };
+  }
+
+  const canonicalQr = formatQrPayload({
+    campusId: expectedCampusId,
+    nodeType: NODE_TYPES.ASSEMBLY,
+    nodeId: matchedAssembly.id,
+  });
+
+  const verified = validateAssemblyQrPayload(canonicalQr, expectedCampusId);
+  if (!verified.valid) {
+    return { valid: false, error: verified.error };
+  }
+
+  return {
+    valid: true,
+    campusId: verified.campusId,
+    nodeType: NODE_TYPES.ASSEMBLY,
+    nodeId: verified.nodeId,
+    label: matchedAssembly.label || verified.nodeId,
+    qrCode: verified.qrCode,
+    raw: trimmed,
+    method: 'manual_code',
+  };
+}

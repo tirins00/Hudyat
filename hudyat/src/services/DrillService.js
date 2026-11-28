@@ -166,9 +166,15 @@ export function createFirestoreDrillStore(firestoreDb = db) {
     },
     subscribeDrills(callback) {
       const q = query(collection(firestoreDb, 'drills'), orderBy('startedAt', 'desc'));
-      return onSnapshot(q, (snap) => {
-        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      });
+      return onSnapshot(
+        q,
+        (snap) => {
+          callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        },
+        () => {
+          // Ignore transient offline/permission errors to keep UI stable
+        },
+      );
     },
     subscribeDrill(drillId, callback) {
       return onSnapshot(doc(firestoreDb, 'drills', drillId), (snap) => {
@@ -267,14 +273,19 @@ export function createDrillService(store = createFirestoreDrillStore()) {
     },
     async submitStepResponse(drillId, uid, payload) {
       if (!uid) throw new Error('User ID (uid) is required.');
+      const resolvedNodeId = payload.nodeId || payload.currentNodeId || null;
       return store.upsertResponse(drillId, uid, {
         status: payload.status || RESPONSE_STATUSES.DCH_ACKNOWLEDGED,
         phase: payload.phase || DRILL_PHASES.DCH,
-        currentNodeId: payload.currentNodeId || null,
+        currentNodeId: resolvedNodeId,
+        nodeId: resolvedNodeId,
+        qrCode: payload.qrCode || null,
+        verifiedQr: Boolean(payload.verifiedQr),
         routeNodeIds: Array.isArray(payload.routeNodeIds) ? payload.routeNodeIds : [],
         completedSteps: Array.isArray(payload.completedSteps) ? payload.completedSteps : [],
         displayName: payload.displayName || uid,
         source: payload.source || 'manual',
+        method: payload.method || payload.source || 'manual',
         note: payload.note || '',
       });
     },

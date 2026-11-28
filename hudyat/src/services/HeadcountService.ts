@@ -97,7 +97,11 @@ export function toMillis(value: TimestampLike | null | undefined): number | null
  */
 export function isVerifiedCheckIn(checkIn: CheckIn | undefined): boolean {
   if (!checkIn) return false;
-  if (checkIn.method === 'qr' || checkIn.method === 'teacher') {
+  if (
+    checkIn.method === 'qr' ||
+    checkIn.method === 'teacher' ||
+    (checkIn.method as string) === 'manual_code'
+  ) {
     return true;
   }
   if (checkIn.method === 'peer') {

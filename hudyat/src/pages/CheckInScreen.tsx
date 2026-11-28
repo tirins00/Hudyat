@@ -7,7 +7,7 @@ import {
   onSnapshot,
   query,
 } from 'firebase/firestore';
-import { SidebarNav } from '../components/SidebarNav';
+import AppShell from '../components/AppShell.jsx';
 import { SosSheet } from '../components/SosSheet';
 import { getHeadcountFirestore } from '../firebase/headcountClient';
 import { useHudyatSession } from '../routes/useHudyatSession';
@@ -288,44 +288,36 @@ export function CheckInScreen() {
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col md:flex-row font-sans">
-      <SidebarNav activePath="/check-in" />
+    <AppShell
+      title="Check In"
+      subtitle="Scan the assembly QR code"
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => setIsSosOpen(true)}
+            className="hudyat-btn hudyat-btn-danger"
+          >
+            SOS
+          </button>
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-950 tracking-tight">
-              Check In
-            </h1>
-            <p className="text-base font-bold text-slate-800 mt-1">
-              Scan the assembly QR code
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setIsSosOpen(true)}
-              className="min-h-[48px] min-w-[48px] px-5 py-2 rounded-lg border-2 border-red-950 bg-red-700 text-white font-extrabold text-sm tracking-wide hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-400 cursor-pointer"
-            >
-              SOS
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setScanError(null);
-                setDuplicateNotice(null);
-                setDemoOverride(!useDemoMode);
-              }}
-              className="min-h-[48px] min-w-[48px] px-4 py-2 rounded-lg border-2 border-slate-800 bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 cursor-pointer"
-            >
-              {useDemoMode
-                ? 'Mode: Demo (Switch to Live)'
-                : 'Mode: Live Firestore (Switch to Demo)'}
-            </button>
-          </div>
-        </header>
+          <button
+            type="button"
+            onClick={() => {
+              setScanError(null);
+              setDuplicateNotice(null);
+              setDemoOverride(!useDemoMode);
+            }}
+            className="hudyat-btn hudyat-btn-primary"
+          >
+            {useDemoMode
+              ? 'Mode: Demo (Switch to Live)'
+              : 'Mode: Live Firestore (Switch to Demo)'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-6">
 
         {isSosOpen && (
           <div
@@ -399,12 +391,12 @@ export function CheckInScreen() {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             {!isScanning ? (
               <button
                 type="button"
                 onClick={() => void startCamera()}
-                className="min-h-[48px] min-w-[48px] px-5 py-2.5 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 cursor-pointer"
+                className="hudyat-btn hudyat-btn-primary"
               >
                 Start Camera Scan
               </button>
@@ -412,7 +404,7 @@ export function CheckInScreen() {
               <button
                 type="button"
                 onClick={() => void stopCamera()}
-                className="min-h-[48px] min-w-[48px] px-5 py-2.5 rounded-lg bg-red-700 text-white font-bold text-sm hover:bg-red-800 cursor-pointer"
+                className="hudyat-btn hudyat-btn-danger"
               >
                 Stop Camera
               </button>
@@ -481,7 +473,7 @@ export function CheckInScreen() {
             />
             <button
               type="submit"
-              className="min-h-[48px] min-w-[48px] px-5 py-2.5 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 cursor-pointer"
+              className="hudyat-btn hudyat-btn-primary"
             >
               Submit QR
             </button>
@@ -527,8 +519,8 @@ export function CheckInScreen() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
 
