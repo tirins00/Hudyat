@@ -72,6 +72,17 @@ function createMockAudioContextClass({ deferResume = false } = {}) {
   return { MockAudioContext, instances };
 }
 
+function getScheduledDurationMs(ctx) {
+  const starts = ctx.oscillators.map((osc) => osc.start.mock.calls[0][0]);
+  const fadeEnds = ctx.gains.map((gainNode) => {
+    const ramps = gainNode.gain.linearRampToValueAtTime.mock.calls;
+    return ramps[ramps.length - 1][1];
+  });
+  const firstStart = Math.min(...starts);
+  const lastEnd = Math.max(...fadeEnds);
+  return Math.round((lastEnd - firstStart) * 1000);
+}
+
 describe('SoundService', () => {
   it('returns false safely when Web Audio API is unavailable', async () => {
     const service = new SoundServiceImpl(null);
@@ -112,7 +123,7 @@ describe('SoundService', () => {
     );
     const fadeOutCall = firstGain.linearRampToValueAtTime.mock.calls[1];
     expect(fadeOutCall[0]).toBe(0);
-    expect(fadeOutCall[1]).toBeCloseTo(firstStart + 0.7, 5);
+    expect(fadeOutCall[1]).toBeCloseTo(firstStart + 0.9, 5);
   });
 
   it('cancels pending playback if stopAlertSound() is called before ctx.resume() resolves', async () => {
@@ -129,7 +140,7 @@ describe('SoundService', () => {
     expect(instances[0].oscillators).toHaveLength(0);
   });
 
-  it('unlocks AudioContext and plays distinct phase patterns', async () => {
+  it('unlocks AudioContext and plays distinct phase patterns spanning >= 3000ms each', async () => {
     const { MockAudioContext, instances } = createMockAudioContextClass();
     const service = new SoundServiceImpl(MockAudioContext);
 
@@ -138,24 +149,32 @@ describe('SoundService', () => {
     expect(instances).toHaveLength(1);
     expect(instances[0].resume).toHaveBeenCalledTimes(1);
 
-    // DCH: 3 pulsing dual-oscillator bursts (6 oscillators)
+    // DCH: 3 heavy pulsing dual-oscillator bursts (6 oscillators, 3200ms)
     expect(await service.playPhaseAlertSound(DRILL_PHASES.DCH)).toBe(true);
     const dchOscs = [...instances[0].oscillators];
     expect(dchOscs).toHaveLength(6);
     expect(dchOscs[0].frequency.value).toBe(820);
+    expect(getScheduledDurationMs(instances[0])).toBeGreaterThanOrEqual(3000);
+    expect(getScheduledDurationMs(instances[0])).toBe(3200);
 
-    // EVACUATE: stops previous oscillators and plays alternating 960/640 Hz siren
+    // EVACUATE: stops previous oscillators and plays alternating 960/640 Hz siren (5 bursts, 3350ms)
     instances[0].oscillators.length = 0;
+    instances[0].gains.length = 0;
     expect(await service.playPhaseAlertSound(DRILL_PHASES.EVACUATE)).toBe(true);
     expect(dchOscs[0].stop).toHaveBeenCalled();
     const evacFreqs = instances[0].oscillators.map((o) => o.frequency.value);
-    expect(evacFreqs).toEqual([960, 640, 960, 640, 960, 640, 960, 640]);
+    expect(evacFreqs).toEqual([960, 640, 960, 640, 960, 640, 960, 640, 960, 640]);
+    expect(getScheduledDurationMs(instances[0])).toBeGreaterThanOrEqual(3000);
+    expect(getScheduledDurationMs(instances[0])).toBe(3350);
 
-    // ENDED: gentle 3-note ascending sine chime
+    // ENDED: gentle 2-phrase ascending sine chime (6 oscillators, 3000ms)
     instances[0].oscillators.length = 0;
+    instances[0].gains.length = 0;
     expect(await service.playPhaseAlertSound(DRILL_PHASES.ENDED)).toBe(true);
-    expect(instances[0].oscillators).toHaveLength(3);
+    expect(instances[0].oscillators).toHaveLength(6);
     expect(instances[0].oscillators.every((o) => o.type === 'sine')).toBe(true);
+    expect(getScheduledDurationMs(instances[0])).toBeGreaterThanOrEqual(3000);
+    expect(getScheduledDurationMs(instances[0])).toBe(3000);
 
     // stopAlertSound stops and disconnects all active oscillators
     const endedOscs = [...instances[0].oscillators];

@@ -7,6 +7,10 @@ import {
 } from '../src/services/VibrationService.js';
 import { DRILL_PHASES } from '../src/types/models.js';
 
+function getTotalDurationMs(pattern) {
+  return pattern.reduce((sum, ms) => sum + ms, 0);
+}
+
 describe('VibrationService', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -39,7 +43,7 @@ describe('VibrationService', () => {
     ]);
   });
 
-  it('triggers distinct phase patterns via navigator.vibrate fallback', () => {
+  it('triggers distinct phase patterns via navigator.vibrate fallback with >= 3000ms total duration', () => {
     const calls = [];
     const service = new VibrationServiceImpl({
       vibrate(pattern) {
@@ -57,14 +61,24 @@ describe('VibrationService', () => {
       PHASE_VIBRATION_PATTERNS.evacuate,
       PHASE_VIBRATION_PATTERNS.ended,
     ]);
-    expect(getPhaseVibrationPattern('dch')).toEqual([800, 250, 800, 250, 800]);
+    expect(getPhaseVibrationPattern('dch')).toEqual([900, 250, 900, 250, 900]);
     expect(getPhaseVibrationPattern('evacuate')).toEqual([
-      500, 200, 500, 200, 500, 200, 500,
+      550, 150, 550, 150, 550, 150, 550, 150, 550,
     ]);
-    expect(getPhaseVibrationPattern('ended')).toEqual([400]);
+    expect(getPhaseVibrationPattern('ended')).toEqual([1200, 600, 1200]);
+
+    for (const phase of [
+      DRILL_PHASES.DCH,
+      DRILL_PHASES.EVACUATE,
+      DRILL_PHASES.ENDED,
+    ]) {
+      expect(getTotalDurationMs(getPhaseVibrationPattern(phase))).toBeGreaterThanOrEqual(
+        3000,
+      );
+    }
   });
 
-  it('sequences multi-pulse phase vibrations with @capacitor/haptics and supports cancellation', () => {
+  it('sequences multi-pulse phase vibrations with @capacitor/haptics (>= 3000ms) and supports cancellation', () => {
     vi.useFakeTimers();
     const hapticsCalls = [];
     const mockHaptics = {
@@ -76,36 +90,38 @@ describe('VibrationService', () => {
     const service = new VibrationServiceImpl(null, mockHaptics);
     expect(service.isSupported()).toBe(true);
 
-    // DCH: 3 long pulses (800ms on, 250ms pause)
+    // DCH: 3 heavy pulses (900ms on, 250ms pause -> 3200ms total)
     expect(service.vibratePhase(DRILL_PHASES.DCH)).toBe(true);
-    expect(hapticsCalls).toEqual([{ duration: 800 }]);
+    expect(hapticsCalls).toEqual([{ duration: 900 }]);
 
-    vi.advanceTimersByTime(1050);
-    expect(hapticsCalls).toEqual([{ duration: 800 }, { duration: 800 }]);
+    vi.advanceTimersByTime(1150);
+    expect(hapticsCalls).toEqual([{ duration: 900 }, { duration: 900 }]);
 
-    vi.advanceTimersByTime(1050);
+    vi.advanceTimersByTime(1150);
     expect(hapticsCalls).toEqual([
-      { duration: 800 },
-      { duration: 800 },
-      { duration: 800 },
+      { duration: 900 },
+      { duration: 900 },
+      { duration: 900 },
     ]);
 
-    // EVACUATE: 4 urgent pulses (500ms on, 200ms pause), stopped after 2 pulses
+    // EVACUATE: 5 urgent pulses (550ms on, 150ms pause -> 3350ms total), stopped after 2 pulses
     hapticsCalls.length = 0;
     expect(service.vibratePhase(DRILL_PHASES.EVACUATE)).toBe(true);
-    expect(hapticsCalls).toEqual([{ duration: 500 }]);
+    expect(hapticsCalls).toEqual([{ duration: 550 }]);
 
     vi.advanceTimersByTime(700);
-    expect(hapticsCalls).toEqual([{ duration: 500 }, { duration: 500 }]);
+    expect(hapticsCalls).toEqual([{ duration: 550 }, { duration: 550 }]);
 
     expect(service.stopVibration()).toBe(true);
     vi.advanceTimersByTime(5000);
-    expect(hapticsCalls).toEqual([{ duration: 500 }, { duration: 500 }]);
+    expect(hapticsCalls).toEqual([{ duration: 550 }, { duration: 550 }]);
 
-    // ENDED: 1 steady confirmation pulse (400ms)
+    // ENDED: 2 steady all-clear pulses (1200ms on, 600ms pause, 1200ms on -> 3000ms total)
     hapticsCalls.length = 0;
     expect(service.vibratePhase(DRILL_PHASES.ENDED)).toBe(true);
-    vi.advanceTimersByTime(2000);
-    expect(hapticsCalls).toEqual([{ duration: 400 }]);
+    expect(hapticsCalls).toEqual([{ duration: 1200 }]);
+
+    vi.advanceTimersByTime(1800);
+    expect(hapticsCalls).toEqual([{ duration: 1200 }, { duration: 1200 }]);
   });
 });

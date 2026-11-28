@@ -1,9 +1,12 @@
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './authContext.js';
 import { getRoleHomePath } from '../services/AuthService.js';
 import { ROLES } from '../types/models.js';
-import AppShell from '../components/AppShell.jsx';
 import ActiveDrillWatcher from '../components/ActiveDrillWatcher.jsx';
+import AdminHomeView from '../components/admin/AdminHomeView.jsx';
+import CoordinatorHomeView from '../components/coordinator/CoordinatorHomeView.jsx';
+import StudentHomeView from '../components/student/StudentHomeView.jsx';
+import TeacherHomeView from '../components/teacher/TeacherHomeView.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import ExpectedListPage from '../pages/ExpectedListPage.jsx';
 import RosterImportPage from '../pages/RosterImportPage.jsx';
@@ -11,10 +14,10 @@ import RouteScreen from '../pages/RouteScreen.jsx';
 import QrSheet from '../pages/QrSheet.jsx';
 import CampusSetupPage from '../pages/CampusSetupPage.jsx';
 import ReportPage from '../pages/ReportPage.jsx';
-import HeadcountBoard from '../pages/HeadcountBoard.tsx';
-import CheckInScreen from '../pages/CheckInScreen.tsx';
-import AssistedCheckInPage from '../pages/AssistedCheckInPage.tsx';
-import SosPage from '../pages/SosPage.tsx';
+import HeadcountBoard from '../pages/HeadcountBoard.jsx';
+import CheckInScreen from '../pages/CheckInScreen.jsx';
+import AssistedCheckInPage from '../pages/AssistedCheckInPage.jsx';
+import SosPage from '../pages/SosPage.jsx';
 import DrillDashboard from '../pages/DrillDashboard.jsx';
 import AlertScreen from '../pages/AlertScreen.jsx';
 import StepScreen from '../pages/StepScreen.jsx';
@@ -67,163 +70,9 @@ function HomeRedirect() {
   return <Navigate to={getRoleHomePath(user.role)} replace />;
 }
 
-function StudentHomePage() {
-  return (
-    <AppShell
-      title="My Drill Plan"
-      subtitle="Confirm your safety status and assembly check-in, follow your evacuation route, help a classmate, or send an SOS."
-    >
-      <section className="rounded-xl border-2 border-slate-900 bg-white p-6 space-y-5">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-950">Quick Drill Actions</h2>
-          <p className="mt-1 text-sm font-medium text-slate-700">
-            When an earthquake drill starts, you will be automatically alerted and guided to the Emergency Alert screen.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-          <Link
-            to="/student/step"
-            className="hudyat-btn hudyat-btn-primary"
-          >
-            Confirm Safety &amp; Assembly Check-In
-          </Link>
-          <Link
-            to="/student/route"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            View Evacuation Route
-          </Link>
-          <Link
-            to="/student/assisted-check-in"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Check In a Classmate
-          </Link>
-          <Link
-            to="/student/alert"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Emergency Alert Screen
-          </Link>
-          <Link
-            to="/student/sos"
-            className="hudyat-btn hudyat-btn-danger"
-          >
-            Send SOS
-          </Link>
-        </div>
-      </section>
-    </AppShell>
-  );
-}
-
-function TeacherHomePage() {
-  return (
-    <AppShell
-      title="My Sections"
-      subtitle="View evacuation routes, mark students present, verify peer check-ins, and monitor live section headcount."
-    >
-      <section className="rounded-xl border-2 border-slate-900 bg-white p-6 space-y-5">
-        <h2 className="text-lg font-extrabold text-slate-950">Teacher Drill Tools</h2>
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-          <Link
-            to="/teacher/headcount"
-            className="hudyat-btn hudyat-btn-primary"
-          >
-            Open Headcount Board
-          </Link>
-          <Link
-            to="/teacher/assisted-check-in"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Open Assisted Check-In
-          </Link>
-          <Link
-            to="/teacher/route"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            View Evacuation Route
-          </Link>
-        </div>
-      </section>
-    </AppShell>
-  );
-}
-
-function CoordinatorHomePage() {
-  return (
-    <AppShell
-      title="Drill Dashboard"
-      subtitle="Start or advance campus drills, monitor the live headcount board, preview expected attendance, and manage campus routes and rosters."
-    >
-      <section className="rounded-xl border-2 border-slate-900 bg-white p-6 space-y-5">
-        <h2 className="text-lg font-extrabold text-slate-950">Coordinator Operations</h2>
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-          <Link
-            to="/coordinator/drills"
-            className="hudyat-btn hudyat-btn-primary"
-          >
-            Manage Drills (Start / Advance / End)
-          </Link>
-          <Link
-            to="/coordinator/headcount"
-            className="hudyat-btn hudyat-btn-primary"
-          >
-            Open Headcount Board
-          </Link>
-          <Link
-            to="/coordinator/expected-list"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Open Expected List
-          </Link>
-          <Link
-            to="/assisted-check-in"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Open Assisted Check-In
-          </Link>
-          <Link
-            to="/coordinator/route"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Evacuation Route
-          </Link>
-          <Link
-            to="/coordinator/campus-setup"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Campus Setup
-          </Link>
-          <Link
-            to="/coordinator/qr-sheet"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Assembly QR Sheets
-          </Link>
-          <Link
-            to="/coordinator/roster-import"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Open Roster Import
-          </Link>
-          <Link
-            to="/coordinator/reports"
-            className="hudyat-btn hudyat-btn-secondary"
-          >
-            Drill Reports
-          </Link>
-        </div>
-      </section>
-    </AppShell>
-  );
-}
-
 function RoleRouter() {
   return (
-    <>
-      <ActiveDrillWatcher />
+    <ActiveDrillWatcher>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
@@ -288,7 +137,7 @@ function RoleRouter() {
           path="/student/*"
           element={
             <RoleGuard allowedRole={ROLES.STUDENT}>
-              <StudentHomePage />
+              <StudentHomeView />
             </RoleGuard>
           }
         />
@@ -322,7 +171,7 @@ function RoleRouter() {
           path="/teacher/*"
           element={
             <RoleGuard allowedRole={ROLES.TEACHER}>
-              <TeacherHomePage />
+              <TeacherHomeView />
             </RoleGuard>
           }
         />
@@ -396,7 +245,7 @@ function RoleRouter() {
           path="/coordinator/*"
           element={
             <RoleGuard allowedRole={ROLES.COORDINATOR}>
-              <CoordinatorHomePage />
+              <CoordinatorHomeView />
             </RoleGuard>
           }
         />
@@ -446,7 +295,7 @@ function RoleRouter() {
           path="/admin/*"
           element={
             <RoleGuard allowedRole={ROLES.ADMIN}>
-              <CampusSetupPage />
+              <AdminHomeView />
             </RoleGuard>
           }
         />
@@ -535,7 +384,7 @@ function RoleRouter() {
         <Route path="/" element={<HomeRedirect />} />
         <Route path="*" element={<HomeRedirect />} />
       </Routes>
-    </>
+    </ActiveDrillWatcher>
   );
 }
 

@@ -9,10 +9,10 @@ import { Haptics } from '@capacitor/haptics';
 import { DRILL_PHASES } from '../types/models.js';
 
 export const VIBRATION_PATTERNS = Object.freeze({
-  DCH: Object.freeze([800, 250, 800, 250, 800]),
-  EVACUATE: Object.freeze([500, 200, 500, 200, 500, 200, 500]),
-  ENDED: Object.freeze([400]),
-  ALERT: Object.freeze([800, 250, 800, 250, 800]),
+  DCH: Object.freeze([900, 250, 900, 250, 900]),
+  EVACUATE: Object.freeze([550, 150, 550, 150, 550, 150, 550, 150, 550]),
+  ENDED: Object.freeze([1200, 600, 1200]),
+  ALERT: Object.freeze([900, 250, 900, 250, 900]),
   STEP_CONFIRMED: Object.freeze([80, 60, 120]),
   SOS: Object.freeze([200, 100, 200, 100, 200, 250, 500, 100, 500, 100, 500]),
 });

@@ -202,42 +202,54 @@ export class SoundServiceImpl {
     const normalized = typeof phase === 'string' ? phase.toLowerCase() : DRILL_PHASES.DCH;
 
     if (normalized === DRILL_PHASES.EVACUATE) {
-      // Urgent alternating two-tone siren (960 Hz / 640 Hz, 8 alternations ~2.8s)
-      const tones = [960, 640, 960, 640, 960, 640, 960, 640];
-      const stepSec = 0.35;
-      tones.forEach((freq, idx) => {
+      // Urgent alternating two-tone siren (960 Hz / 640 Hz): 5 pulses matching 3350ms cadence
+      const pulseDur = 0.55;
+      const pauseDur = 0.15;
+      const halfDur = pulseDur / 2;
+      for (let i = 0; i < 5; i += 1) {
+        const pulseStart = baseTime + i * (pulseDur + pauseDur);
         this._scheduleTone(ctx, {
           type: 'sawtooth',
-          frequency: freq,
-          startTime: baseTime + idx * stepSec,
-          duration: stepSec - 0.02,
+          frequency: 960,
+          startTime: pulseStart,
+          duration: halfDur,
           peakGain: 0.18,
         });
-      });
+        this._scheduleTone(ctx, {
+          type: 'sawtooth',
+          frequency: 640,
+          startTime: pulseStart + halfDur,
+          duration: halfDur,
+          peakGain: 0.18,
+        });
+      }
       return;
     }
 
     if (normalized === DRILL_PHASES.ENDED) {
-      // Gentle ascending "All Clear" chime (C5 -> E5 -> G5)
-      const notes = [
-        { freq: 523.25, offset: 0, dur: 0.28 },
-        { freq: 659.25, offset: 0.24, dur: 0.28 },
-        { freq: 783.99, offset: 0.48, dur: 0.55 },
+      // Gentle ascending "All Clear" chime (C5 -> E5 -> G5), 2 steady phrases matching 3000ms cadence
+      const phraseOffsets = [0, 1.8];
+      const phraseNotes = [
+        { freq: 523.25, offset: 0, dur: 0.35 },
+        { freq: 659.25, offset: 0.32, dur: 0.35 },
+        { freq: 783.99, offset: 0.64, dur: 0.56 },
       ];
-      notes.forEach((note) => {
-        this._scheduleTone(ctx, {
-          type: 'sine',
-          frequency: note.freq,
-          startTime: baseTime + note.offset,
-          duration: note.dur,
-          peakGain: 0.18,
+      phraseOffsets.forEach((phraseOffset) => {
+        phraseNotes.forEach((note) => {
+          this._scheduleTone(ctx, {
+            type: 'sine',
+            frequency: note.freq,
+            startTime: baseTime + phraseOffset + note.offset,
+            duration: note.dur,
+            peakGain: 0.18,
+          });
         });
       });
       return;
     }
 
-    // Default / DCH (Drop, Cover & Hold): 3 distinct pulsing emergency bursts (~2.85s)
-    const pulseDur = 0.7;
+    // Default / DCH (Drop, Cover & Hold): 3 heavy pulsing emergency bursts matching 3200ms cadence
+    const pulseDur = 0.9;
     const pauseDur = 0.25;
     for (let i = 0; i < 3; i += 1) {
       const start = baseTime + i * (pulseDur + pauseDur);

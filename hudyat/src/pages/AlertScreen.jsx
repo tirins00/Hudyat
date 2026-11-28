@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '../components/AppShell.jsx';
+import AlertActionGrid from '../components/student/AlertActionGrid.jsx';
+import AlertPhaseCard from '../components/student/AlertPhaseCard.jsx';
+import PageStack from '../components/ui/PageStack.jsx';
 import { useAuth } from '../routes/authContext.js';
 import {
   claimPhaseAlertTrigger,
@@ -16,30 +19,30 @@ import { DRILL_PHASES, ROLES } from '../types/models.js';
 const PHASE_ALERT_COPY = Object.freeze({
   [DRILL_PHASES.DCH]: {
     badge: 'DROP • COVER • HOLD ON',
+    badgeStatus: 'dch',
+    cardTone: 'warning',
     title: 'EARTHQUAKE DRILL ALERT',
     instructions:
       'Drop to the floor, take cover under a sturdy desk or table, and hold on until the shaking stops.',
     hapticSummary: '3 long pulses (Drop, Cover & Hold)',
-    cardClass: 'border-red-700 bg-red-50',
-    badgeClass: 'bg-red-700 text-white',
   },
   [DRILL_PHASES.EVACUATE]: {
     badge: 'EVACUATE NOW • NO ELEVATORS',
+    badgeStatus: 'evacuate',
+    cardTone: 'danger',
     title: 'EVACUATION PHASE ACTIVE',
     instructions:
       'Proceed calmly to your designated assembly area using stairwells only. Do not use elevators.',
     hapticSummary: '4 urgent pulses (Evacuate Now)',
-    cardClass: 'border-amber-800 bg-amber-50',
-    badgeClass: 'bg-amber-900 text-white',
   },
   [DRILL_PHASES.ENDED]: {
     badge: 'ALL CLEAR',
+    badgeStatus: 'ended',
+    cardTone: 'success',
     title: 'DRILL ENDED',
     instructions:
       'The drill has concluded. Follow coordinator instructions to return to rooms.',
     hapticSummary: '1 steady confirmation pulse (All Clear)',
-    cardClass: 'border-emerald-800 bg-emerald-50',
-    badgeClass: 'bg-emerald-800 text-white',
   },
 });
 
@@ -134,135 +137,29 @@ export default function AlertScreen({
       title="Emergency Alert"
       subtitle="Visual, haptic, and audio alert with direct drill actions."
     >
-      <section
-        role="alertdialog"
-        aria-live="assertive"
-        aria-label={copy.title}
-        className={`rounded-2xl border-2 p-6 sm:p-8 text-center space-y-5 ${copy.cardClass}`}
-      >
-        <div className="flex items-center justify-center gap-2.5">
-          {isLive && (
-            <span
-              aria-hidden="true"
-              className="hudyat-alert-pulse inline-block h-3.5 w-3.5 rounded-full bg-red-700"
-            />
-          )}
-          <span
-            className={`inline-block rounded-full px-4 py-1.5 text-xs font-extrabold tracking-widest uppercase ${copy.badgeClass}`}
-          >
-            {copy.badge}
-          </span>
-        </div>
+      <PageStack>
+        <AlertPhaseCard
+          drill={drill}
+          phase={phase}
+          isLive={isLive}
+          copy={copy}
+          soundMuted={soundMuted}
+          vibrating={vibrating}
+          audioSupported={audioSupported}
+          vibrationSupported={vibrationSupported}
+          onToggleSoundMute={handleToggleSoundMute}
+          onToggleVibration={handleToggleVibration}
+        />
 
-        <h2 className="text-3xl font-extrabold text-slate-950">{copy.title}</h2>
-
-        {drill && (
-          <p className="text-sm font-bold text-slate-800">
-            {drill.title} • Campus: {drill.campusId} • Phase: {phase.toUpperCase()}
-          </p>
-        )}
-
-        <div className="mx-auto max-w-xl rounded-xl border-2 border-slate-900 bg-white p-5 text-left">
-          <p className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1">
-            Immediate Safety Instructions
-          </p>
-          <p className="text-base font-semibold text-slate-950">{copy.instructions}</p>
-        </div>
-
-        {/* Audio & Haptic Alert Controls */}
-        <div className="mx-auto max-w-xl rounded-xl border-2 border-slate-300 bg-white p-4 space-y-3">
-          <p className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
-            Alert Cues — Visual &amp; Haptic Always Active
-          </p>
-
-          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleToggleSoundMute}
-              aria-pressed={soundMuted}
-              className={`hudyat-btn ${
-                soundMuted ? 'hudyat-btn-primary' : 'hudyat-btn-secondary'
-              }`}
-            >
-              {soundMuted ? 'Unmute Sound' : 'Mute Sound'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleToggleVibration}
-              disabled={!vibrationSupported && (!audioSupported || soundMuted)}
-              className="hudyat-btn hudyat-btn-secondary"
-            >
-              {vibrating ? 'Stop Alert Cues' : 'Replay Alert Cues'}
-            </button>
-          </div>
-
-          <div className="text-xs font-semibold text-slate-700 space-y-1">
-            <p>
-              Sound:{' '}
-              {audioSupported
-                ? soundMuted
-                  ? 'Muted (Visual & Haptic Active)'
-                  : 'On'
-                : 'Audio unavailable (Visual & Haptic Active)'}
-            </p>
-            <p>
-              Haptic / Vibration:{' '}
-              {vibrationSupported
-                ? `${vibrating ? 'Active' : 'Ready'} — ${copy.hapticSummary}`
-                : 'Not supported on this device (Visual Active)'}
-            </p>
-          </div>
-        </div>
-
-        {/* Consolidated, Non-Overlapping Next-Step Actions */}
-        <div className="mx-auto max-w-2xl rounded-xl border-2 border-slate-900 bg-white p-5 text-left space-y-4">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
-              Next Drill Steps
-            </p>
-            <p className="text-sm font-medium text-slate-700 mt-0.5">
-              Confirm Safety &amp; Assembly Check-In → Evacuation Route → Peer Check-In → SOS
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => navigate(stepPath)}
-              className="hudyat-btn hudyat-btn-primary sm:w-full"
-            >
-              Confirm Safety &amp; Assembly Check-In
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate(routePath)}
-              className="hudyat-btn hudyat-btn-secondary sm:w-full"
-            >
-              View Evacuation Route
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate(peerCheckInPath)}
-              className="hudyat-btn hudyat-btn-secondary sm:w-full"
-            >
-              {isStudent ? 'Check In a Classmate' : 'Assisted Check-In'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate(sosPath)}
-              className={`hudyat-btn sm:w-full ${
-                isStudent ? 'hudyat-btn-danger' : 'hudyat-btn-secondary'
-              }`}
-            >
-              {isStudent ? 'Send SOS' : 'Headcount Board'}
-            </button>
-          </div>
-        </div>
-      </section>
+        <AlertActionGrid
+          isStudent={isStudent}
+          stepPath={stepPath}
+          routePath={routePath}
+          peerCheckInPath={peerCheckInPath}
+          sosPath={sosPath}
+          onNavigate={(path) => navigate(path)}
+        />
+      </PageStack>
     </AppShell>
   );
 }

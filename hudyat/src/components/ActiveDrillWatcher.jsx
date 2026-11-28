@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ActiveDrillBannerContext } from './layout/ActiveDrillContext.js';
 import { useAuth } from '../routes/authContext.js';
 import {
   claimPhaseAlertTrigger,
@@ -24,6 +25,7 @@ export default function ActiveDrillWatcher({
   drillService = DrillService,
   vibrationService = VibrationService,
   soundService = SoundService,
+  children,
 }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -114,22 +116,42 @@ export default function ActiveDrillWatcher({
     soundService,
   ]);
 
-  if (!isStudent || !activeDrill || onAlertPage) {
-    return null;
+  const bannerInfo = useMemo(() => {
+    if (!isStudent || !activeDrill || onAlertPage) {
+      return null;
+    }
+    const phaseLabel =
+      PHASE_BANNER_LABELS[activeDrill.phase] || activeDrill.phase.toUpperCase();
+    return {
+      drillId: activeDrill.id,
+      phase: activeDrill.phase,
+      phaseLabel,
+      isEvacuate: activeDrill.phase === DRILL_PHASES.EVACUATE,
+    };
+  }, [isStudent, activeDrill, onAlertPage]);
+
+  // When wrapping routes, expose banner state via context so AppShell stacks it
+  // cleanly below the sticky top bar and beside the desktop sidebar.
+  if (children !== undefined) {
+    return (
+      <ActiveDrillBannerContext.Provider value={bannerInfo}>
+        {children}
+      </ActiveDrillBannerContext.Provider>
+    );
   }
 
-  const phaseLabel =
-    PHASE_BANNER_LABELS[activeDrill.phase] || activeDrill.phase.toUpperCase();
-  const isEvacuate = activeDrill.phase === DRILL_PHASES.EVACUATE;
+  if (!bannerInfo) {
+    return null;
+  }
 
   return (
     <div
       role="status"
       aria-live="assertive"
       className={`sticky top-0 z-50 border-b-2 text-white shadow-sm ${
-        isEvacuate
-          ? 'border-amber-950 bg-amber-900'
-          : 'border-red-950 bg-red-800'
+        bannerInfo.isEvacuate
+          ? 'border-red-950 bg-red-700'
+          : 'border-amber-950 bg-amber-800'
       }`}
     >
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2">
@@ -138,14 +160,12 @@ export default function ActiveDrillWatcher({
             aria-hidden="true"
             className="hudyat-alert-pulse inline-block h-3 w-3 shrink-0 rounded-full bg-white"
           />
-          <span>
-            ACTIVE DRILL: {phaseLabel}
-          </span>
+          <span>ACTIVE DRILL: {bannerInfo.phaseLabel}</span>
         </div>
 
         <Link
           to="/student/alert"
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 border-white bg-slate-950 px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-white"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-white bg-slate-950 px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           ACTIVE DRILL — Return to Alert
         </Link>

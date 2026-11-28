@@ -384,3 +384,142 @@ export function validateManualAssemblyCode(rawInput, options = {}) {
     method: 'manual_code',
   };
 }
+
+export class QrCodeError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'QrCodeError';
+    this.code = code;
+  }
+}
+
+function extractNodeQrPayload(raw) {
+  // 0. Pipe-delimited form from CampusSeeder / QrCodeParser.js: HUDYAT|<campusId>|<nodeType>|<nodeId>
+  if (raw.startsWith('HUDYAT|')) {
+    const parsed = parseQrPayload(raw);
+    if (parsed.valid) {
+      return {
+        campusId: parsed.campusId,
+        nodeId: parsed.nodeId,
+      };
+    }
+  }
+
+  // 1. URI form: hudyat://<campusId>/<nodeId>
+  const uriMatch = /^hudyat:\/\/([^/]+)\/(.+)$/i.exec(raw);
+  if (uriMatch) {
+    return {
+      campusId: decodeURIComponent(uriMatch[1]).trim(),
+      nodeId: decodeURIComponent(uriMatch[2]).trim(),
+    };
+  }
+
+  // 2. Colon-delimited form: hudyat:<campusId>:<nodeId>
+  const colonMatch = /^hudyat:([^:]+):(.+)$/i.exec(raw);
+  if (colonMatch) {
+    return {
+      campusId: colonMatch[1].trim(),
+      nodeId: colonMatch[2].trim(),
+    };
+  }
+
+  // 3. JSON payload form: { "campusId": "...", "nodeId": "..." }
+  if (raw.startsWith('{') && raw.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(raw);
+      const campusId =
+        typeof parsed.campusId === 'string' ? parsed.campusId.trim() : undefined;
+      const nodeId =
+        typeof parsed.nodeId === 'string'
+          ? parsed.nodeId.trim()
+          : typeof parsed.id === 'string'
+            ? parsed.id.trim()
+            : undefined;
+      if (campusId || nodeId) {
+        return { campusId, nodeId };
+      }
+    } catch {
+      // Fall through to raw string matching
+    }
+  }
+
+  return {};
+}
+
+/**
+ * Validates and resolves a scanned QR code string against a campus's `MapNode` records.
+ * Rejects codes from another campus and (when `requireAssembly` is true) non-assembly nodes.
+ */
+export function parseQrCode(text, campusId, mapNodes, options = {}) {
+  const trimmed = String(text ?? '').trim();
+  if (!trimmed) {
+    throw new QrCodeError(
+      'EMPTY_QR',
+      'Empty QR code. Please scan a valid campus QR code.',
+    );
+  }
+
+  const payload = extractNodeQrPayload(trimmed);
+  if (payload.campusId && payload.campusId !== campusId) {
+    throw new QrCodeError(
+      'WRONG_CAMPUS',
+      `This QR code belongs to another campus ("${payload.campusId}") and cannot be used here.`,
+    );
+  }
+
+  const matchedNode =
+    mapNodes.find((n) => n.qrCode === trimmed) ??
+    (payload.nodeId
+      ? mapNodes.find((n) => n.id === payload.nodeId)
+      : undefined) ??
+    mapNodes.find((n) => n.id === trimmed);
+
+  if (!matchedNode) {
+    throw new QrCodeError(
+      'NODE_NOT_FOUND',
+      'Invalid QR code. This code is not recognized on the campus map.',
+    );
+  }
+
+  if (matchedNode.campusId !== campusId) {
+    throw new QrCodeError(
+      'WRONG_CAMPUS',
+      `This QR code belongs to another campus ("${matchedNode.campusId}") and cannot be used here.`,
+    );
+  }
+
+  if (options.requireAssembly && matchedNode.type !== 'assembly') {
+    throw new QrCodeError(
+      'NOT_ASSEMBLY_NODE',
+      `Invalid assembly QR code: "${matchedNode.label}" is a ${matchedNode.type}, not an assembly area. Please scan an assembly area QR code.`,
+    );
+  }
+
+  return {
+    node: matchedNode,
+    nodeId: matchedNode.id,
+    campusId: matchedNode.campusId,
+    label: matchedNode.label,
+    type: matchedNode.type,
+  };
+}
+
+/**
+ * Class wrapper matching the SDD `QrCodeParser` design (`+parse(text): NodeRef`).
+ */
+export class QrCodeParser {
+  constructor(campusId, mapNodes) {
+    this.campusId = campusId;
+    this.mapNodes = mapNodes;
+  }
+
+  parse(text, options = {}) {
+    return parseQrCode(text, this.campusId, this.mapNodes, options);
+  }
+
+  parseAssembly(text) {
+    return parseQrCode(text, this.campusId, this.mapNodes, {
+      requireAssembly: true,
+    });
+  }
+}
